@@ -83,6 +83,12 @@ export async function fetchWordStats(): Promise<WordStat[]> {
   }))
 }
 
+export async function resetWordStats(): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.from('word_stats').delete().neq('word_id', '')
+  if (error) console.error(error)
+}
+
 export async function upsertWordStat(params: {
   wordId: string
   word: string

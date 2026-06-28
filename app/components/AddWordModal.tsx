@@ -12,7 +12,7 @@ interface WordEntry {
 
 interface AddWordModalProps {
   onSave: (entries: WordEntry[]) => void
-  onCancel: () => void
+  onClose: () => void
 }
 
 type Tab = 'manual' | 'csv'
@@ -22,7 +22,6 @@ function parseCSV(text: string): WordEntry[] {
   const entries: WordEntry[] = []
 
   for (const line of lines) {
-    // simple quoted-field CSV split
     const cols: string[] = []
     let cur = ''
     let inQuote = false
@@ -36,7 +35,6 @@ function parseCSV(text: string): WordEntry[] {
 
     const [word, meaning, chapter, question] = cols
     if (!word || !meaning) continue
-    // skip header row
     if (word.toLowerCase() === '단어' || word.toLowerCase() === 'word') continue
 
     entries.push({
@@ -49,13 +47,14 @@ function parseCSV(text: string): WordEntry[] {
   return entries
 }
 
-export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
+export default function AddWordModal({ onSave, onClose }: AddWordModalProps) {
   const [tab, setTab] = useState<Tab>('manual')
   const [form, setForm] = useState({ word: '', meaning: '', pronunciation: '', chapter: '', question: '' })
   const [csvEntries, setCsvEntries] = useState<WordEntry[] | null>(null)
   const [csvFileName, setCsvFileName] = useState('')
   const submittingRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const wordInputRef = useRef<HTMLInputElement>(null)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -72,12 +71,15 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
       chapter: Number(form.chapter) || 0,
       question: Number(form.question) || 0,
     }])
+    // 챕터·문항번호 유지, 단어·뜻·발음만 초기화
+    setForm(prev => ({ ...prev, word: '', meaning: '', pronunciation: '' }))
     submittingRef.current = false
+    setTimeout(() => wordInputRef.current?.focus(), 0)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') handleManualSubmit()
-    if (e.key === 'Escape') onCancel()
+    if (e.key === 'Escape') onClose()
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -95,25 +97,25 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
   function handleCSVSave() {
     if (!csvEntries || csvEntries.length === 0) return
     onSave(csvEntries)
+    onClose()
   }
 
   const tabClass = (t: Tab) =>
     `flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
       tab === t
-        ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
-        : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
+        ? 'bg-sky-500 text-white'
+        : 'text-sky-400 hover:text-sky-600 hover:bg-sky-50'
     }`
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="w-full max-w-sm mx-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-6 flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">단어 추가</h2>
 
-        {/* tab switcher */}
-        <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+        <div className="flex gap-1 p-1 bg-sky-50 border border-sky-100 rounded-xl">
           <button className={tabClass('manual')} onClick={() => setTab('manual')}>직접 입력</button>
           <button className={tabClass('csv')} onClick={() => setTab('csv')}>CSV 업로드</button>
         </div>
@@ -122,13 +124,14 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
           <>
             <div className="flex flex-col gap-3">
               <input
+                ref={wordInputRef}
                 autoFocus
                 name="word"
                 value={form.word}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="단어"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
               <input
                 name="meaning"
@@ -136,7 +139,7 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="뜻"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
               <input
                 name="pronunciation"
@@ -144,7 +147,7 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="발음 (선택, 예: ɪnˈtɜːrprɪt)"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
               <div className="flex gap-2">
                 <input
@@ -155,7 +158,7 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   placeholder="챕터 번호"
-                  className="w-1/2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+                  className="w-1/2 px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
                 />
                 <input
                   name="question"
@@ -165,21 +168,21 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   placeholder="문항 번호"
-                  className="w-1/2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+                  className="w-1/2 px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
                 />
               </div>
             </div>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
               >
-                취소
+                닫기
               </button>
               <button
                 onClick={handleManualSubmit}
                 disabled={!form.word.trim() || !form.meaning.trim()}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 저장
               </button>
@@ -193,7 +196,7 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
               </p>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center gap-2 w-full px-3 py-6 rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 transition-colors text-sm"
+                className="flex items-center justify-center gap-2 w-full px-3 py-6 rounded-xl border-2 border-dashed border-sky-200 text-sky-400 hover:border-sky-400 hover:text-sky-600 transition-colors text-sm"
               >
                 {csvFileName ? (
                   <span className="font-medium text-zinc-900 dark:text-zinc-100">{csvFileName}</span>
@@ -216,15 +219,15 @@ export default function AddWordModal({ onSave, onCancel }: AddWordModalProps) {
             </div>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleCSVSave}
                 disabled={!csvEntries || csvEntries.length === 0}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 업로드
               </button>

@@ -62,7 +62,7 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="단어"
-            className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
           />
           <input
             name="meaning"
@@ -70,7 +70,7 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="뜻"
-            className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
           />
           <input
             name="pronunciation"
@@ -78,7 +78,7 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="발음 (선택, 예: ɪnˈtɜːrprɪt)"
-            className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
           />
           <div className="flex gap-2">
             <input
@@ -106,14 +106,14 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
             취소
           </button>
           <button
             onClick={handleSubmit}
             disabled={!form.word.trim() || !form.meaning.trim()}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             저장
           </button>

@@ -10,7 +10,7 @@ import QuizSetSelector from './components/QuizSetSelector'
 import QuizView from './components/QuizView'
 import {
   fetchVocabulary, insertWords, updateWord, deleteWord,
-  fetchWordStats, upsertWordStat,
+  fetchWordStats, upsertWordStat, resetWordStats,
   type WordStat,
 } from './lib/supabase'
 
@@ -30,7 +30,9 @@ export default function Home() {
   const [wordStats, setWordStats] = useState<Map<string, WordStat>>(new Map())
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<View>('list')
-  const [quizChapter, setQuizChapter] = useState<number | null>(null)
+  const [quizSet, setQuizSet] = useState<{ chapter: number; question: number } | null>(null)
+  const [selectedChapter, setSelectedChapter] = useState<string>('')
+  const [selectedQuestion, setSelectedQuestion] = useState<string>('')
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
@@ -44,10 +46,9 @@ export default function Home() {
     })
   }, [])
 
-  async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number }[]) {
+  async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number; pronunciation?: string }[]) {
     const newWords = entries.map(e => ({ id: crypto.randomUUID(), ...e }))
     setWords(prev => [...prev, ...newWords])
-    setIsAddModalOpen(false)
     await insertWords(newWords)
   }
 
@@ -65,6 +66,11 @@ export default function Home() {
     await updateWord(updated)
   }
 
+  async function handleResetStats() {
+    setWordStats(new Map())
+    await resetWordStats()
+  }
+
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
     const updated = await upsertWordStat({ wordId, word, meaning, isCorrect })
     if (updated) {
@@ -72,26 +78,72 @@ export default function Home() {
     }
   }
 
-  function handleSelectQuizSet(chapter: number) {
-    setQuizChapter(chapter)
+  function handleSelectQuizSet(chapter: number, question: number) {
+    setQuizSet({ chapter, question })
     setView('quiz')
   }
 
-  const quizSetWords = useMemo(
-    () => quizChapter !== null ? words.filter(w => w.chapter === quizChapter) : [],
-    [words, quizChapter]
+  function handleStartQuiz() {
+    if (selectedChapter && selectedQuestion) {
+      setQuizSet({ chapter: Number(selectedChapter), question: Number(selectedQuestion) })
+      setView('quiz')
+    } else {
+      setView('quiz-sets')
+    }
+  }
+
+  const quizSetsFilterChapter = selectedChapter && !selectedQuestion ? Number(selectedChapter) : null
+
+  const chapters = useMemo(
+    () => [...new Set(words.map(w => w.chapter))].sort((a, b) => a - b),
+    [words]
   )
-  const chapterLabel = quizChapter === 0 ? '챕터 미지정' : `${quizChapter}챕터`
+
+  const questions = useMemo(() => {
+    if (!selectedChapter) return []
+    const ch = Number(selectedChapter)
+    return [...new Set(words.filter(w => w.chapter === ch).map(w => w.question))].sort((a, b) => a - b)
+  }, [words, selectedChapter])
+
+  const filteredWords = useMemo(() => {
+    let result = words
+    if (selectedChapter) result = result.filter(w => w.chapter === Number(selectedChapter))
+    if (selectedQuestion) result = result.filter(w => w.question === Number(selectedQuestion))
+    return result
+  }, [words, selectedChapter, selectedQuestion])
+
+  function handleChapterChange(ch: string) {
+    setSelectedChapter(ch)
+    setSelectedQuestion('')
+  }
+
+  const quizSetWords = useMemo(
+    () => quizSet !== null
+      ? words.filter(w => w.chapter === quizSet.chapter && w.question === quizSet.question)
+      : [],
+    [words, quizSet]
+  )
+  const chapterLabel = !quizSet ? ''
+    : quizSet.chapter === 0 ? '챕터 미지정'
+    : quizSet.question === 0 ? `${quizSet.chapter}챕터`
+    : `${quizSet.chapter}챕터 ${quizSet.question}번`
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
       {view === 'list' && (
         <Header
           onAddWord={() => setIsAddModalOpen(true)}
-          onStartQuiz={() => setView('quiz-sets')}
+          onStartQuiz={handleStartQuiz}
+          onResetStats={handleResetStats}
+          chapters={chapters}
+          questions={questions}
+          selectedChapter={selectedChapter}
+          selectedQuestion={selectedQuestion}
+          onChapterChange={handleChapterChange}
+          onQuestionChange={setSelectedQuestion}
         />
       )}
-      <main className="flex flex-col flex-1">
+      <main className="flex flex-col flex-1 bg-white">
         {view === 'list' && (
           loading ? (
             <div className="flex flex-col items-center justify-center flex-1 text-zinc-400 dark:text-zinc-600 py-32">
@@ -99,7 +151,7 @@ export default function Home() {
             </div>
           ) : (
             <WordList
-              words={words}
+              words={filteredWords}
               wordStats={wordStats}
               onDelete={(id) => setDeletingWord(words.find(w => w.id === id) ?? null)}
               onEdit={(word) => setEditingWord(word)}
@@ -109,11 +161,12 @@ export default function Home() {
         {view === 'quiz-sets' && (
           <QuizSetSelector
             words={words}
+            filterChapter={quizSetsFilterChapter}
             onSelect={handleSelectQuizSet}
             onBack={() => setView('list')}
           />
         )}
-        {view === 'quiz' && quizChapter !== null && (
+        {view === 'quiz' && quizSet !== null && (
           <QuizView
             setWords={quizSetWords}
             allWords={words}
@@ -127,7 +180,7 @@ export default function Home() {
       {isAddModalOpen && (
         <AddWordModal
           onSave={handleAddWord}
-          onCancel={() => setIsAddModalOpen(false)}
+          onClose={() => setIsAddModalOpen(false)}
         />
       )}
       {deletingWord && (
