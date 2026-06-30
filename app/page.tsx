@@ -42,9 +42,18 @@ export default function Home() {
   const [bookmarkOnly, setBookmarkOnly] = useState(false)
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
+  function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
+
   useEffect(() => {
     Promise.all([fetchVocabulary(), fetchWordStats()]).then(([vocab, stats]) => {
-      setWords(vocab)
+      setWords(shuffle(vocab))
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setLoading(false)
     })
@@ -154,6 +163,7 @@ export default function Home() {
     setSelectedQuestion('')
     setQuery('')
     setBookmarkOnly(false)
+    setWords(prev => shuffle(prev))
   }
 
   const quizSetWords = useMemo(
