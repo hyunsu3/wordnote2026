@@ -26,7 +26,7 @@ interface WordListProps {
 
 function TrashIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6M14 11v6" />
@@ -37,7 +37,7 @@ function TrashIcon() {
 
 function PencilIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
@@ -209,12 +209,12 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
             onContextMenu={(e) => e.preventDefault()}
           >
             {/* 수정·삭제 버튼 */}
-            <div className="absolute top-2 right-2 hidden group-hover:flex gap-1 z-10">
+            <div className="absolute bottom-2 right-2 hidden group-hover:flex gap-1 z-10">
               <button
                 onPointerDown={(e) => e.stopPropagation()}
                 onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onEdit(w) }}
-                className="p-1.5 rounded-lg text-sky-300 hover:text-sky-600 hover:bg-sky-50 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-300 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
                 aria-label="단어 수정"
               >
                 <PencilIcon />
@@ -223,7 +223,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
                 onPointerDown={(e) => e.stopPropagation()}
                 onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onDelete(w.id) }}
-                className="p-1.5 rounded-lg text-sky-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                 aria-label="단어 삭제"
               >
                 <TrashIcon />
@@ -232,13 +232,13 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
 
             {/* 단어명 + 문항번호/발음 */}
             <div className="flex items-start justify-between gap-2">
-              <span className="text-xl font-bold text-zinc-900">{w.word}</span>
+              <span className="text-2xl font-bold text-zinc-900">{w.word}</span>
               <div className="flex flex-col items-end shrink-0 gap-0.5 mt-0.5 min-w-0">
                 {(w.chapter > 0 || w.question > 0) && (
-                  <span className="text-xs text-zinc-400">{w.chapter}-{w.question}</span>
+                  <span className="text-lg text-zinc-400">{w.chapter}챕터 {w.question}번</span>
                 )}
                 {w.pronunciation && (
-                  <span className="text-lg text-zinc-400 text-right">[{w.pronunciation}]</span>
+                  <span className="text-lg text-zinc-400 text-right">{w.pronunciation}</span>
                 )}
               </div>
             </div>
