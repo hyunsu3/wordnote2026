@@ -18,6 +18,10 @@ interface WordListProps {
   onDelete: (id: string) => void
   onEdit: (word: Word) => void
   resetKey?: number
+  bookmarked: Set<string>
+  onToggleBookmark: (id: string) => void
+  bookmarkOnly: boolean
+  hasAnyWords: boolean
 }
 
 function TrashIcon() {
@@ -72,21 +76,13 @@ function getMeaningClass(len: number): string {
   return 'text-sm leading-relaxed'
 }
 
-const BOOKMARK_KEY = 'wordnote-bookmarks'
 const TAP_COUNT_KEY = 'wordnote-tap-counts'
 
-export default function WordList({ words, wordStats, onDelete, onEdit, resetKey }: WordListProps) {
+export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
-  const [bookmarkOnly, setBookmarkOnly] = useState(false)
   const [tapCounts, setTapCounts] = useState<Map<string, number>>(new Map())
-  const [query, setQuery] = useState('')
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(BOOKMARK_KEY)
-      if (saved) setBookmarked(new Set(JSON.parse(saved)))
-    } catch {}
     try {
       const saved = localStorage.getItem(TAP_COUNT_KEY)
       if (saved) setTapCounts(new Map(Object.entries<number>(JSON.parse(saved))))
@@ -137,21 +133,12 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey 
     })
   }
 
-  function toggleBookmark(id: string) {
-    setBookmarked(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      try { localStorage.setItem(BOOKMARK_KEY, JSON.stringify([...next])) } catch {}
-      return next
-    })
-  }
-
   function startHold(e: React.PointerEvent, id: string) {
     startPosRef.current = { x: e.clientX, y: e.clientY }
     holdFiredRef.current = false
     holdTimerRef.current = setTimeout(() => {
       holdFiredRef.current = true
-      toggleBookmark(id)
+      onToggleBookmark(id)
     }, 600)
   }
 
@@ -181,7 +168,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey 
     holdFiredRef.current = false
   }
 
-  if (words.length === 0) {
+  if (!hasAnyWords) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 text-sky-300 gap-2 py-32">
         <p className="text-lg">아직 단어가 없습니다.</p>
@@ -190,59 +177,21 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey 
     )
   }
 
-  const bookmarkCount = words.filter(w => bookmarked.has(w.id)).length
-  const q = query.trim().toLowerCase()
-  const displayWords = words
-    .filter(w => !bookmarkOnly || bookmarked.has(w.id))
-    .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
+  if (words.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 text-zinc-300 gap-2 py-32">
+        {bookmarkOnly
+          ? <><p className="text-base">북마크된 단어가 없습니다.</p><p className="text-sm">카드를 길게 누르면 초록 단어로 지정됩니다.</p></>
+          : <p className="text-base">검색 결과가 없습니다.</p>
+        }
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col flex-1">
-      {/* 검색 + 초록 단어 필터 */}
-      <div className="flex flex-col gap-2 px-5 pt-4 pb-1">
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="단어, 뜻, 발음 검색..."
-            className="w-full pl-9 pr-9 py-2 rounded-xl border border-sky-100 bg-sky-50 text-sm text-zinc-800 placeholder-zinc-300 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setBookmarkOnly(v => !v)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              bookmarkOnly
-                ? 'bg-green-500 text-white border-green-500'
-                : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-current" />
-            초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
-          </button>
-        </div>
-      </div>
-
-      {bookmarkOnly && bookmarkCount === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 text-zinc-300 gap-2 py-32">
-          <p className="text-base">북마크된 단어가 없습니다.</p>
-          <p className="text-sm">카드를 길게 누르면 초록 단어로 지정됩니다.</p>
-        </div>
-      ) : (
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
-      {displayWords.map((w) => {
+      {words.map((w) => {
         const isExpanded = expanded.has(w.id)
         const isBookmarked = bookmarked.has(w.id)
 
@@ -308,7 +257,6 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey 
         )
       })}
       </ul>
-      )}
     </div>
   )
 }

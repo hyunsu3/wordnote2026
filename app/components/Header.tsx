@@ -12,6 +12,11 @@ interface HeaderProps {
   selectedQuestion: string
   onChapterChange: (ch: string) => void
   onQuestionChange: (q: string) => void
+  query: string
+  setQuery: (q: string) => void
+  bookmarkOnly: boolean
+  setBookmarkOnly: (v: boolean | ((prev: boolean) => boolean)) => void
+  bookmarkCount: number
 }
 
 function chapterLabel(ch: number) {
@@ -27,6 +32,7 @@ export default function Header({
   chapters, questions,
   selectedChapter, selectedQuestion,
   onChapterChange, onQuestionChange,
+  query, setQuery, bookmarkOnly, setBookmarkOnly, bookmarkCount,
 }: HeaderProps) {
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
@@ -81,32 +87,65 @@ export default function Header({
         </div>
       </div>
 
-      {chapters.length > 0 && (
-        <div className="flex items-center gap-3 px-5 py-3 border-t border-sky-50">
-          <select
-            value={selectedChapter}
-            onChange={e => onChapterChange(e.target.value)}
-            className={selectCls}
-          >
-            <option value="">전체 챕터</option>
-            {chapters.map(ch => (
-              <option key={ch} value={String(ch)}>{chapterLabel(ch)}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedQuestion}
-            onChange={e => onQuestionChange(e.target.value)}
-            disabled={!selectedChapter || questions.length === 0}
-            className={`${selectCls} disabled:opacity-40 disabled:cursor-not-allowed`}
-          >
-            <option value="">전체 문항</option>
-            {questions.map(q => (
-              <option key={q} value={String(q)}>{questionLabel(q)}</option>
-            ))}
-          </select>
+      <div className="flex items-center gap-2 px-5 py-3 border-t border-sky-50">
+        {chapters.length > 0 && (
+          <>
+            <select
+              value={selectedChapter}
+              onChange={e => onChapterChange(e.target.value)}
+              className={selectCls}
+            >
+              <option value="">전체 챕터</option>
+              {chapters.map(ch => (
+                <option key={ch} value={String(ch)}>{chapterLabel(ch)}</option>
+              ))}
+            </select>
+            <select
+              value={selectedQuestion}
+              onChange={e => onQuestionChange(e.target.value)}
+              disabled={!selectedChapter || questions.length === 0}
+              className={`${selectCls} disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <option value="">전체 문항</option>
+              {questions.map(q => (
+                <option key={q} value={String(q)}>{questionLabel(q)}</option>
+              ))}
+            </select>
+            <div className="w-px h-6 bg-zinc-200 shrink-0" />
+          </>
+        )}
+        <button
+          onClick={() => setBookmarkOnly(v => !v)}
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+            bookmarkOnly
+              ? 'bg-green-500 text-white border-green-500'
+              : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-current" />
+          초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
+        </button>
+        <div className="relative flex-1">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="검색..."
+            className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm text-zinc-700 placeholder-zinc-300 focus:outline-none focus:border-zinc-400"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </header>
 
       {showPw && (

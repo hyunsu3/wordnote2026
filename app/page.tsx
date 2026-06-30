@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Header from './components/Header'
 import AddWordModal from './components/AddWordModal'
 import WordList from './components/WordList'
@@ -38,12 +38,28 @@ export default function Home() {
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
   const [editingWord, setEditingWord] = useState<Word | null>(null)
   const [resetKey, setResetKey] = useState(0)
+  const [query, setQuery] = useState('')
+  const [bookmarkOnly, setBookmarkOnly] = useState(false)
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     Promise.all([fetchVocabulary(), fetchWordStats()]).then(([vocab, stats]) => {
       setWords(vocab)
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setLoading(false)
+    })
+    try {
+      const saved = localStorage.getItem('wordnote-bookmarks')
+      if (saved) setBookmarked(new Set(JSON.parse(saved)))
+    } catch {}
+  }, [])
+
+  const toggleBookmark = useCallback((id: string) => {
+    setBookmarked(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      try { localStorage.setItem('wordnote-bookmarks', JSON.stringify([...next])) } catch {}
+      return next
     })
   }, [])
 
@@ -114,6 +130,18 @@ export default function Home() {
     return result
   }, [words, selectedChapter, selectedQuestion])
 
+  const bookmarkCount = useMemo(
+    () => filteredWords.filter(w => bookmarked.has(w.id)).length,
+    [filteredWords, bookmarked]
+  )
+
+  const displayWords = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return filteredWords
+      .filter(w => !bookmarkOnly || bookmarked.has(w.id))
+      .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
+  }, [filteredWords, bookmarkOnly, bookmarked, query])
+
   function handleChapterChange(ch: string) {
     setSelectedChapter(ch)
     setSelectedQuestion('')
@@ -143,6 +171,11 @@ export default function Home() {
           selectedQuestion={selectedQuestion}
           onChapterChange={handleChapterChange}
           onQuestionChange={setSelectedQuestion}
+          query={query}
+          setQuery={setQuery}
+          bookmarkOnly={bookmarkOnly}
+          setBookmarkOnly={setBookmarkOnly}
+          bookmarkCount={bookmarkCount}
         />
       )}
       <main className="flex flex-col flex-1 bg-white">
@@ -153,11 +186,15 @@ export default function Home() {
             </div>
           ) : (
             <WordList
-              words={filteredWords}
+              words={displayWords}
               wordStats={wordStats}
               onDelete={(id) => setDeletingWord(words.find(w => w.id === id) ?? null)}
               onEdit={(word) => setEditingWord(word)}
               resetKey={resetKey}
+              bookmarked={bookmarked}
+              onToggleBookmark={toggleBookmark}
+              bookmarkOnly={bookmarkOnly}
+              hasAnyWords={words.length > 0}
             />
           )
         )}
