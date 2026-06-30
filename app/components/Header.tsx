@@ -6,6 +6,7 @@ interface HeaderProps {
   onAddWord: () => void
   onStartQuiz: () => void
   onResetStats: () => void
+  onResetView: () => void
   chapters: number[]
   questions: number[]
   selectedChapter: string
@@ -28,7 +29,7 @@ function questionLabel(q: number) {
 }
 
 export default function Header({
-  onAddWord, onStartQuiz, onResetStats,
+  onAddWord, onStartQuiz, onResetStats, onResetView,
   chapters, questions,
   selectedChapter, selectedQuestion,
   onChapterChange, onQuestionChange,
@@ -63,31 +64,30 @@ export default function Header({
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">맘스보카</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>맘스보카</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={onAddWord}
-            className="flex items-center gap-1.5 px-5 py-2.5 text-base font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
+            className="flex items-center justify-center px-4 py-2.5 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
-            <span className="text-lg leading-none">+</span>
-            단어 추가
+            +
           </button>
           <button
             onClick={onStartQuiz}
-            className="px-5 py-2.5 text-base font-medium rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"
+            className="px-4 py-2.5 text-base font-medium rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"
           >
-            퀴즈 풀기
+            퀴즈
           </button>
           <button
             onClick={openReset}
-            className="px-5 py-2.5 text-base font-medium rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
           >
-            초기화
+            Init!
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-5 py-3 border-t border-sky-50">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-5 py-3 border-t border-sky-50">
         {chapters.length > 0 && (
           <>
             <select
@@ -111,39 +111,40 @@ export default function Header({
                 <option key={q} value={String(q)}>{questionLabel(q)}</option>
               ))}
             </select>
-            <div className="w-px h-6 bg-zinc-200 shrink-0" />
           </>
         )}
-        <button
-          onClick={() => setBookmarkOnly(v => !v)}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-            bookmarkOnly
-              ? 'bg-green-500 text-white border-green-500'
-              : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-current" />
-          초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
-        </button>
-        <div className="relative flex-1">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="검색..."
-            className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm text-zinc-700 placeholder-zinc-300 focus:outline-none focus:border-zinc-400"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          )}
+        <div className="flex items-center gap-2 flex-1 basis-full sm:basis-auto min-w-0">
+          <button
+            onClick={() => setBookmarkOnly(v => !v)}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              bookmarkOnly
+                ? 'bg-green-500 text-white border-green-500'
+                : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-current" />
+            초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
+          </button>
+          <div className="relative flex-1 min-w-0">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="검색..."
+              className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm text-zinc-700 placeholder-zinc-300 focus:outline-none focus:border-zinc-400"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

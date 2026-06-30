@@ -147,6 +147,13 @@ export default function Home() {
     setSelectedQuestion('')
   }
 
+  function handleResetView() {
+    setSelectedChapter('')
+    setSelectedQuestion('')
+    setQuery('')
+    setBookmarkOnly(false)
+  }
+
   const quizSetWords = useMemo(
     () => quizSet !== null
       ? words.filter(w => w.chapter === quizSet.chapter && w.question === quizSet.question)
@@ -165,6 +172,7 @@ export default function Home() {
           onAddWord={() => setIsAddModalOpen(true)}
           onStartQuiz={handleStartQuiz}
           onResetStats={handleResetStats}
+          onResetView={handleResetView}
           chapters={chapters}
           questions={questions}
           selectedChapter={selectedChapter}
