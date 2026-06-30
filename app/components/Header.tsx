@@ -58,7 +58,7 @@ export default function Header({
     }
   }
 
-  const selectCls = 'px-4 py-2.5 text-base rounded-xl border border-sky-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer'
+  const selectCls = 'px-4 py-2.5 text-base rounded-xl border border-green-300 bg-white text-zinc-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-400 cursor-pointer'
 
   return (
     <>
@@ -71,12 +71,6 @@ export default function Header({
             className="flex items-center justify-center px-4 py-2.5 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
             +
-          </button>
-          <button
-            onClick={onStartQuiz}
-            className="px-4 py-2.5 text-base font-medium rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"
-          >
-            퀴즈
           </button>
           <button
             onClick={openReset}
@@ -113,7 +107,13 @@ export default function Header({
             </select>
           </>
         )}
-        <div className="flex items-center gap-2 flex-1 basis-full sm:basis-auto min-w-0">
+        <button
+          onClick={onStartQuiz}
+          className="shrink-0 px-4 py-2.5 text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors"
+        >
+          퀴즈 시작
+        </button>
+        <div className="flex items-center gap-2 flex-1 basis-full min-w-0">
           <button
             onClick={() => setBookmarkOnly(v => !v)}
             className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
@@ -134,7 +134,7 @@ export default function Header({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="검색..."
-              className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm text-zinc-700 placeholder-zinc-300 focus:outline-none focus:border-zinc-400"
+              className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-green-300 bg-white text-sm text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-green-500"
             />
             {query && (
               <button

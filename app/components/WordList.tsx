@@ -198,8 +198,8 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
         return (
           <li
             key={w.id}
-            className={`group relative flex flex-col gap-2 p-4 rounded-xl bg-white shadow hover:shadow-lg transition-all cursor-pointer select-none ${
-              isBookmarked ? 'border-2 border-green-500' : 'border border-sky-100'
+            className={`group relative flex flex-col gap-2 p-4 rounded-xl shadow hover:shadow-lg transition-all cursor-pointer select-none ${
+              isBookmarked ? 'border-2 border-green-500 bg-green-50' : 'border border-zinc-300 bg-white'
             }`}
             onPointerDown={(e) => startHold(e, w.id)}
             onPointerMove={moveHold}
@@ -235,10 +235,10 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               <span className="text-2xl font-bold text-zinc-900">{w.word}</span>
               <div className="flex flex-col items-end shrink-0 gap-0.5 mt-0.5 min-w-0">
                 {(w.chapter > 0 || w.question > 0) && (
-                  <span className="text-lg text-zinc-400">{w.chapter}챕터 {w.question}번</span>
+                  <span className="text-lg text-zinc-600">{w.chapter}챕터 {w.question}번</span>
                 )}
                 {w.pronunciation && (
-                  <span className="text-lg text-zinc-400 text-right">{w.pronunciation}</span>
+                  <span className="text-lg text-zinc-600 text-right">{w.pronunciation}</span>
                 )}
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               {isExpanded ? (
                 <span className={`${getMeaningClass(w.meaning.length)} text-zinc-700`}>{w.meaning}</span>
               ) : (
-                <span className="text-xs text-zinc-300">탭하여 뜻 보기</span>
+                <span className="text-sm text-zinc-500">탭하여 뜻 보기</span>
               )}
             </div>
 
