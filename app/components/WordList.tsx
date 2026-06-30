@@ -72,6 +72,7 @@ const BOOKMARK_KEY = 'wordnote-bookmarks'
 export default function WordList({ words, wordStats, onDelete, onEdit }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
+  const [bookmarkOnly, setBookmarkOnly] = useState(false)
 
   useEffect(() => {
     try {
@@ -160,9 +161,34 @@ export default function WordList({ words, wordStats, onDelete, onEdit }: WordLis
     )
   }
 
+  const bookmarkCount = words.filter(w => bookmarked.has(w.id)).length
+  const displayWords = bookmarkOnly ? words.filter(w => bookmarked.has(w.id)) : words
+
   return (
-    <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
-      {words.map((w) => {
+    <div className="flex flex-col flex-1">
+      {/* 초록 단어 필터 토글 */}
+      <div className="flex items-center gap-2 px-5 pt-4 pb-1">
+        <button
+          onClick={() => setBookmarkOnly(v => !v)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+            bookmarkOnly
+              ? 'bg-green-500 text-white border-green-500'
+              : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-current" />
+          초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
+        </button>
+      </div>
+
+      {bookmarkOnly && bookmarkCount === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 text-zinc-300 gap-2 py-32">
+          <p className="text-base">북마크된 단어가 없습니다.</p>
+          <p className="text-sm">카드를 길게 누르면 초록 단어로 지정됩니다.</p>
+        </div>
+      ) : (
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
+      {displayWords.map((w) => {
         const isExpanded = expanded.has(w.id)
         const isBookmarked = bookmarked.has(w.id)
 
@@ -227,6 +253,8 @@ export default function WordList({ words, wordStats, onDelete, onEdit }: WordLis
           </li>
         )
       })}
-    </ul>
+      </ul>
+      )}
+    </div>
   )
 }
