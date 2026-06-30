@@ -11,6 +11,7 @@ import QuizView from './components/QuizView'
 import {
   fetchVocabulary, insertWords, updateWord, deleteWord,
   fetchWordStats, upsertWordStat, resetWordStats,
+  fetchBookmarks, setBookmark, incrementTapStat,
   type WordStat,
 } from './lib/supabase'
 
@@ -52,22 +53,20 @@ export default function Home() {
   }
 
   useEffect(() => {
-    Promise.all([fetchVocabulary(), fetchWordStats()]).then(([vocab, stats]) => {
+    Promise.all([fetchVocabulary(), fetchWordStats(), fetchBookmarks()]).then(([vocab, stats, bookmarkIds]) => {
       setWords(shuffle(vocab))
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
+      setBookmarked(new Set(bookmarkIds))
       setLoading(false)
     })
-    try {
-      const saved = localStorage.getItem('wordnote-bookmarks')
-      if (saved) setBookmarked(new Set(JSON.parse(saved)))
-    } catch {}
   }, [])
 
   const toggleBookmark = useCallback((id: string) => {
     setBookmarked(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      try { localStorage.setItem('wordnote-bookmarks', JSON.stringify([...next])) } catch {}
+      const isNowBookmarked = !next.has(id)
+      isNowBookmarked ? next.add(id) : next.delete(id)
+      setBookmark(id, isNowBookmarked)
       return next
     })
   }, [])
@@ -101,8 +100,24 @@ export default function Home() {
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
     const updated = await upsertWordStat({ wordId, word, meaning, isCorrect })
     if (updated) {
-      setWordStats(prev => new Map(prev).set(wordId, updated))
+      setWordStats(prev => {
+        const cur = prev.get(wordId)
+        return new Map(prev).set(wordId, { ...updated, tapCount: cur?.tapCount ?? 0 })
+      })
     }
+  }
+
+  async function handleTap(wordId: string, word: string, meaning: string) {
+    const newTap = await incrementTapStat({ wordId, word, meaning })
+    setWordStats(prev => {
+      const cur = prev.get(wordId)
+      const next = new Map(prev)
+      next.set(wordId, cur
+        ? { ...cur, tapCount: newTap }
+        : { wordId, correctCount: 0, wrongCount: 0, lastStudied: null, tapCount: newTap }
+      )
+      return next
+    })
   }
 
   function handleSelectQuizSet(chapter: number, question: number) {
@@ -215,6 +230,7 @@ export default function Home() {
               onToggleBookmark={toggleBookmark}
               bookmarkOnly={bookmarkOnly}
               hasAnyWords={words.length > 0}
+              onTap={handleTap}
             />
           )
         )}

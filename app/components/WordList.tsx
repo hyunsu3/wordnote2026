@@ -22,6 +22,7 @@ interface WordListProps {
   onToggleBookmark: (id: string) => void
   bookmarkOnly: boolean
   hasAnyWords: boolean
+  onTap: (id: string, word: string, meaning: string) => void
 }
 
 function TrashIcon() {
@@ -76,23 +77,13 @@ function getMeaningClass(len: number): string {
   return 'text-sm leading-relaxed'
 }
 
-const TAP_COUNT_KEY = 'wordnote-tap-counts'
 
-export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords }: WordListProps) {
+export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords, onTap }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [tapCounts, setTapCounts] = useState<Map<string, number>>(new Map())
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(TAP_COUNT_KEY)
-      if (saved) setTapCounts(new Map(Object.entries<number>(JSON.parse(saved))))
-    } catch {}
-  }, [])
 
   useEffect(() => {
     if (!resetKey) return
-    setTapCounts(new Map())
-    try { localStorage.removeItem(TAP_COUNT_KEY) } catch {}
+    setExpanded(new Set())
   }, [resetKey])
 
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -100,23 +91,14 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
   const startPosRef = useRef<{ x: number; y: number } | null>(null)
   const expandTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  function incrementTap(id: string) {
-    setTapCounts(prev => {
-      const next = new Map(prev)
-      next.set(id, (next.get(id) ?? 0) + 1)
-      try { localStorage.setItem(TAP_COUNT_KEY, JSON.stringify(Object.fromEntries(next))) } catch {}
-      return next
-    })
-  }
-
-  function toggleExpanded(id: string) {
+  function toggleExpanded(id: string, word: string, meaning: string) {
     const isShowing = expanded.has(id)
     const existing = expandTimersRef.current.get(id)
     if (existing) {
       clearTimeout(existing)
       expandTimersRef.current.delete(id)
     }
-    if (!isShowing) incrementTap(id)
+    if (!isShowing) onTap(id, word, meaning)
     setExpanded(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -156,7 +138,10 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
       clearTimeout(holdTimerRef.current)
       holdTimerRef.current = null
     }
-    if (!holdFiredRef.current) toggleExpanded(id)
+    if (!holdFiredRef.current) {
+      const w = words.find(w => w.id === id)
+      if (w) toggleExpanded(id, w.word, w.meaning)
+    }
     holdFiredRef.current = false
   }
 
@@ -240,13 +225,13 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
             {/* 뜻 + 발음 (탭 토글) */}
             <div className="min-h-[1.5rem]">
               {isExpanded ? (
-                <span className={`${getMeaningClass(w.meaning.length)} text-zinc-700`}>{w.meaning}</span>
+                <span className="text-2xl text-zinc-700 leading-snug">{w.meaning}</span>
               ) : (
                 <span className="text-sm text-zinc-500">탭하여 뜻 보기</span>
               )}
             </div>
 
-            <MasteryBadge stat={wordStats.get(w.id)} tapCount={tapCounts.get(w.id) ?? 0} />
+            <MasteryBadge stat={wordStats.get(w.id)} tapCount={wordStats.get(w.id)?.tapCount ?? 0} />
           </li>
         )
       })}

@@ -26,6 +26,25 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
   return data ?? []
 }
 
+export async function fetchBookmarks(): Promise<string[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('id')
+    .eq('bookmarked', true)
+  if (error) { console.error(error); return [] }
+  return (data ?? []).map(r => r.id)
+}
+
+export async function setBookmark(wordId: string, bookmarked: boolean): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase
+    .from('vocabulary')
+    .update({ bookmarked })
+    .eq('id', wordId)
+  if (error) console.error(error)
+}
+
 export async function insertWords(words: VocabRow[]): Promise<void> {
   if (!supabase || words.length === 0) return
   const { error } = await supabase.from('vocabulary').insert(words)
@@ -54,6 +73,7 @@ export interface WordStat {
   correctCount: number
   wrongCount: number
   lastStudied: string | null
+  tapCount: number
 }
 
 export type MasteryLevel = 'unlearned' | 'learning' | 'familiar' | 'mastered'
@@ -72,7 +92,7 @@ export async function fetchWordStats(): Promise<WordStat[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('word_stats')
-    .select('word_id, correct_count, wrong_count, last_studied')
+    .select('word_id, correct_count, wrong_count, last_studied, tap_count')
     .not('word_id', 'is', null)
   if (error) { console.error(error); return [] }
   return (data ?? []).map(r => ({
@@ -80,6 +100,7 @@ export async function fetchWordStats(): Promise<WordStat[]> {
     correctCount: r.correct_count ?? 0,
     wrongCount: r.wrong_count ?? 0,
     lastStudied: r.last_studied ?? null,
+    tapCount: r.tap_count ?? 0,
   }))
 }
 
@@ -112,7 +133,7 @@ export async function upsertWordStat(params: {
       .from('word_stats')
       .update({ correct_count: newCorrect, wrong_count: newWrong, last_studied: now })
       .eq('id', existing.id)
-    return { wordId: params.wordId, correctCount: newCorrect, wrongCount: newWrong, lastStudied: now }
+    return { wordId: params.wordId, correctCount: newCorrect, wrongCount: newWrong, lastStudied: now, tapCount: 0 }
   } else {
     await supabase.from('word_stats').insert({
       word_id: params.wordId,
@@ -127,6 +148,36 @@ export async function upsertWordStat(params: {
       correctCount: params.isCorrect ? 1 : 0,
       wrongCount: params.isCorrect ? 0 : 1,
       lastStudied: now,
+      tapCount: 0,
     }
+  }
+}
+
+export async function incrementTapStat(params: {
+  wordId: string
+  word: string
+  meaning: string
+}): Promise<number> {
+  if (!supabase) return 0
+  const { data: existing } = await supabase
+    .from('word_stats')
+    .select('id, tap_count')
+    .eq('word_id', params.wordId)
+    .maybeSingle()
+
+  if (existing) {
+    const newTap = (existing.tap_count ?? 0) + 1
+    await supabase.from('word_stats').update({ tap_count: newTap }).eq('id', existing.id)
+    return newTap
+  } else {
+    await supabase.from('word_stats').insert({
+      word_id: params.wordId,
+      word: params.word,
+      meaning: params.meaning,
+      correct_count: 0,
+      wrong_count: 0,
+      tap_count: 1,
+    })
+    return 1
   }
 }

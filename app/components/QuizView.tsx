@@ -118,7 +118,7 @@ export default function QuizView({ setWords, allWords, chapterLabel, onAnswer, o
   useEffect(() => {
     if (selected === null) return
     const isCorrect = selected === current?.answer
-    const delay = isCorrect ? 1500 : 2500
+    const delay = isCorrect ? 700 : 2500
     const timer = setTimeout(handleNext, delay)
     return () => clearTimeout(timer)
   }, [selected])
