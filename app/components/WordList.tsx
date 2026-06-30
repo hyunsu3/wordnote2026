@@ -230,20 +230,14 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               </button>
             </div>
 
-            {/* 단어명 + 문항번호/발음 */}
-            <div className="flex items-start justify-between gap-2 overflow-hidden">
-              <span className="text-2xl font-bold text-zinc-900 min-w-0 break-all">{w.word}</span>
-              <div className="flex flex-col items-end min-w-0 gap-0.5 mt-0.5 shrink-0 max-w-[55%]">
-                {(w.chapter > 0 || w.question > 0) && (
-                  <span className="text-lg text-zinc-600 truncate">{w.chapter}챕터 {w.question}번</span>
-                )}
-                {w.pronunciation && (
-                  <span className="text-lg text-zinc-600 text-right truncate w-full">{w.pronunciation}</span>
-                )}
-              </div>
+            {/* 단어명 + 문항번호 */}
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-2xl font-bold text-zinc-900 break-words min-w-0">{w.word}</span>
+              {(w.chapter > 0 || w.question > 0) && (
+                <span className="text-base text-zinc-600 shrink-0 mt-1">{w.chapter}-{w.question}</span>
+              )}
             </div>
-
-            {/* 뜻 (탭 토글) */}
+            {/* 뜻 + 발음 (탭 토글) */}
             <div className="min-h-[1.5rem]">
               {isExpanded ? (
                 <span className={`${getMeaningClass(w.meaning.length)} text-zinc-700`}>{w.meaning}</span>
