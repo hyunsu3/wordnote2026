@@ -231,6 +231,8 @@ export default function Home() {
         <AddWordModal
           onSave={handleAddWord}
           onClose={() => setIsAddModalOpen(false)}
+          defaultChapter={selectedChapter ? Number(selectedChapter) : undefined}
+          defaultQuestion={selectedQuestion ? Number(selectedQuestion) : undefined}
         />
       )}
       {deletingWord && (

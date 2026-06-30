@@ -13,6 +13,8 @@ interface WordEntry {
 interface AddWordModalProps {
   onSave: (entries: WordEntry[]) => void
   onClose: () => void
+  defaultChapter?: number
+  defaultQuestion?: number
 }
 
 type Tab = 'manual' | 'csv'
@@ -47,9 +49,13 @@ function parseCSV(text: string): WordEntry[] {
   return entries
 }
 
-export default function AddWordModal({ onSave, onClose }: AddWordModalProps) {
+export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQuestion }: AddWordModalProps) {
   const [tab, setTab] = useState<Tab>('manual')
-  const [form, setForm] = useState({ word: '', meaning: '', pronunciation: '', chapter: '', question: '' })
+  const [form, setForm] = useState({
+    word: '', meaning: '', pronunciation: '',
+    chapter: defaultChapter ? String(defaultChapter) : '',
+    question: defaultQuestion ? String(defaultQuestion) : '',
+  })
   const [csvEntries, setCsvEntries] = useState<WordEntry[] | null>(null)
   const [csvFileName, setCsvFileName] = useState('')
   const submittingRef = useRef(false)

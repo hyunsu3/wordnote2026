@@ -231,14 +231,14 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
             </div>
 
             {/* 단어명 + 문항번호/발음 */}
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-2xl font-bold text-zinc-900">{w.word}</span>
-              <div className="flex flex-col items-end shrink-0 gap-0.5 mt-0.5 min-w-0">
+            <div className="flex items-start justify-between gap-2 overflow-hidden">
+              <span className="text-2xl font-bold text-zinc-900 min-w-0 break-all">{w.word}</span>
+              <div className="flex flex-col items-end min-w-0 gap-0.5 mt-0.5 shrink-0 max-w-[55%]">
                 {(w.chapter > 0 || w.question > 0) && (
-                  <span className="text-lg text-zinc-600">{w.chapter}챕터 {w.question}번</span>
+                  <span className="text-lg text-zinc-600 truncate">{w.chapter}챕터 {w.question}번</span>
                 )}
                 {w.pronunciation && (
-                  <span className="text-lg text-zinc-600 text-right">{w.pronunciation}</span>
+                  <span className="text-lg text-zinc-600 text-right truncate w-full">{w.pronunciation}</span>
                 )}
               </div>
             </div>
