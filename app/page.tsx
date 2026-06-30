@@ -145,6 +145,8 @@ export default function Home() {
   function handleChapterChange(ch: string) {
     setSelectedChapter(ch)
     setSelectedQuestion('')
+    setQuery('')
+    setBookmarkOnly(false)
   }
 
   function handleResetView() {
