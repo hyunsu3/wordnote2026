@@ -37,6 +37,7 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
   const [editingWord, setEditingWord] = useState<Word | null>(null)
+  const [resetKey, setResetKey] = useState(0)
 
   useEffect(() => {
     Promise.all([fetchVocabulary(), fetchWordStats()]).then(([vocab, stats]) => {
@@ -68,6 +69,7 @@ export default function Home() {
 
   async function handleResetStats() {
     setWordStats(new Map())
+    setResetKey(k => k + 1)
     await resetWordStats()
   }
 
@@ -155,6 +157,7 @@ export default function Home() {
               wordStats={wordStats}
               onDelete={(id) => setDeletingWord(words.find(w => w.id === id) ?? null)}
               onEdit={(word) => setEditingWord(word)}
+              resetKey={resetKey}
             />
           )
         )}

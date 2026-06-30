@@ -17,6 +17,7 @@ interface WordListProps {
   wordStats: Map<string, WordStat>
   onDelete: (id: string) => void
   onEdit: (word: Word) => void
+  resetKey?: number
 }
 
 function TrashIcon() {
@@ -41,21 +42,25 @@ function PencilIcon() {
 
 const MASTERY_CONFIG: Record<MasteryLevel, { label: string; dot: string; text: string; bg: string }> = {
   unlearned: { label: '미학습',  dot: 'bg-zinc-300',    text: 'text-zinc-500',   bg: 'bg-zinc-100' },
-  learning:  { label: '학습 중', dot: 'bg-red-400',     text: 'text-red-600',    bg: 'bg-red-50' },
+  learning:  { label: '학습 중', dot: 'bg-green-400',   text: 'text-green-600',  bg: 'bg-green-50' },
   familiar:  { label: '익숙함',  dot: 'bg-yellow-400',  text: 'text-yellow-700', bg: 'bg-yellow-50' },
   mastered:  { label: '완료',    dot: 'bg-green-500',   text: 'text-green-700',  bg: 'bg-green-50' },
 }
 
-function MasteryBadge({ stat }: { stat: WordStat | undefined }) {
-  const level = getMastery(stat)
+function MasteryBadge({ stat, tapCount = 0 }: { stat: WordStat | undefined; tapCount?: number }) {
+  let level = getMastery(stat)
+  if (level === 'unlearned' && tapCount > 0) level = 'learning'
   const cfg = MASTERY_CONFIG[level]
   const total = stat ? stat.correctCount + stat.wrongCount : 0
   const accuracy = total > 0 ? Math.round((stat!.correctCount / total) * 100) : null
+  const showAccuracy = level === 'familiar' || level === 'mastered'
   return (
     <div className={`inline-flex self-start items-center gap-1.5 px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
       <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
-      <span className="text-sm font-medium">{cfg.label}</span>
-      {accuracy !== null && <span className="text-sm opacity-80">{accuracy}%</span>}
+      {showAccuracy && accuracy !== null
+        ? <span className="text-sm font-medium">정답률 {accuracy}%</span>
+        : <span className="text-sm font-medium">{cfg.label}</span>
+      }
     </div>
   )
 }
@@ -68,30 +73,54 @@ function getMeaningClass(len: number): string {
 }
 
 const BOOKMARK_KEY = 'wordnote-bookmarks'
+const TAP_COUNT_KEY = 'wordnote-tap-counts'
 
-export default function WordList({ words, wordStats, onDelete, onEdit }: WordListProps) {
+export default function WordList({ words, wordStats, onDelete, onEdit, resetKey }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
   const [bookmarkOnly, setBookmarkOnly] = useState(false)
+  const [tapCounts, setTapCounts] = useState<Map<string, number>>(new Map())
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(BOOKMARK_KEY)
       if (saved) setBookmarked(new Set(JSON.parse(saved)))
     } catch {}
+    try {
+      const saved = localStorage.getItem(TAP_COUNT_KEY)
+      if (saved) setTapCounts(new Map(Object.entries<number>(JSON.parse(saved))))
+    } catch {}
   }, [])
+
+  useEffect(() => {
+    if (!resetKey) return
+    setTapCounts(new Map())
+    try { localStorage.removeItem(TAP_COUNT_KEY) } catch {}
+  }, [resetKey])
 
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const holdFiredRef = useRef(false)
   const startPosRef = useRef<{ x: number; y: number } | null>(null)
   const expandTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
+  function incrementTap(id: string) {
+    setTapCounts(prev => {
+      const next = new Map(prev)
+      next.set(id, (next.get(id) ?? 0) + 1)
+      try { localStorage.setItem(TAP_COUNT_KEY, JSON.stringify(Object.fromEntries(next))) } catch {}
+      return next
+    })
+  }
+
   function toggleExpanded(id: string) {
+    const isShowing = expanded.has(id)
     const existing = expandTimersRef.current.get(id)
     if (existing) {
       clearTimeout(existing)
       expandTimersRef.current.delete(id)
     }
+    if (!isShowing) incrementTap(id)
     setExpanded(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -162,23 +191,48 @@ export default function WordList({ words, wordStats, onDelete, onEdit }: WordLis
   }
 
   const bookmarkCount = words.filter(w => bookmarked.has(w.id)).length
-  const displayWords = bookmarkOnly ? words.filter(w => bookmarked.has(w.id)) : words
+  const q = query.trim().toLowerCase()
+  const displayWords = words
+    .filter(w => !bookmarkOnly || bookmarked.has(w.id))
+    .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
 
   return (
     <div className="flex flex-col flex-1">
-      {/* 초록 단어 필터 토글 */}
-      <div className="flex items-center gap-2 px-5 pt-4 pb-1">
-        <button
-          onClick={() => setBookmarkOnly(v => !v)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-            bookmarkOnly
-              ? 'bg-green-500 text-white border-green-500'
-              : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-current" />
-          초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
-        </button>
+      {/* 검색 + 초록 단어 필터 */}
+      <div className="flex flex-col gap-2 px-5 pt-4 pb-1">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="단어, 뜻, 발음 검색..."
+            className="w-full pl-9 pr-9 py-2 rounded-xl border border-sky-100 bg-sky-50 text-sm text-zinc-800 placeholder-zinc-300 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBookmarkOnly(v => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              bookmarkOnly
+                ? 'bg-green-500 text-white border-green-500'
+                : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-current" />
+            초록 단어 모아보기 {bookmarkCount > 0 && <span className="opacity-80">{bookmarkCount}</span>}
+          </button>
+        </div>
       </div>
 
       {bookmarkOnly && bookmarkCount === 0 ? (
@@ -249,7 +303,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit }: WordLis
               )}
             </div>
 
-            <MasteryBadge stat={wordStats.get(w.id)} />
+            <MasteryBadge stat={wordStats.get(w.id)} tapCount={tapCounts.get(w.id) ?? 0} />
           </li>
         )
       })}
