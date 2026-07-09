@@ -34,6 +34,30 @@ interface Word {
 
 type View = 'list' | 'quiz-sets' | 'quiz' | 'dictionary'
 
+function findLatestStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string; chapter: number } | null {
+  let latestTime = ''
+  let latestWord: Word | null = null
+  for (const s of stats) {
+    if (!s.lastStudied || s.lastStudied <= latestTime) continue
+    if (s.correctCount + s.wrongCount === 0) continue
+    const w = vocab.find(v => v.id === s.wordId)
+    if (!w) continue
+    latestTime = s.lastStudied
+    latestWord = w
+  }
+  return latestWord ? { wordSet: latestWord.wordSet, chapter: latestWord.chapter } : null
+}
+
+function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string; chapter: number } | null {
+  const latest = findLatestStudyScope(vocab, stats)
+  if (latest) return latest
+  const chapters = vocab.filter(w => !w.archived).map(w => w.chapter)
+  if (chapters.length === 0) return null
+  const realChapters = chapters.filter(ch => ch > 0)
+  const chapter = realChapters.length > 0 ? Math.min(...realChapters) : Math.min(...chapters)
+  return { wordSet: undefined, chapter }
+}
+
 export default function Home() {
   const [words, setWords] = useState<Word[]>([])
   const [wordStats, setWordStats] = useState<Map<string, WordStat>>(new Map())
@@ -56,33 +80,16 @@ export default function Home() {
   const [bookmarkOnly, setBookmarkOnly] = useState(false)
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
-  function shuffle<T>(arr: T[]): T[] {
-    const a = [...arr]
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]]
-    }
-    return a
-  }
-
   useEffect(() => {
     Promise.all([fetchVocabulary(), fetchWordStats(), fetchBookmarks()]).then(([vocab, stats, bookmarkIds]) => {
-      setWords(shuffle(vocab))
+      setWords(vocab)
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
 
-      let latestTime = ''
-      let latestWord: Word | null = null
-      for (const s of stats) {
-        if (!s.lastStudied || s.lastStudied <= latestTime) continue
-        const w = vocab.find(v => v.id === s.wordId)
-        if (!w) continue
-        latestTime = s.lastStudied
-        latestWord = w
-      }
-      if (latestWord) {
-        if (latestWord.wordSet) setSelectedWordSet(latestWord.wordSet)
-        setSelectedChapter(String(latestWord.chapter))
+      const latest = resolveStudyScope(vocab, stats)
+      if (latest) {
+        if (latest.wordSet) setSelectedWordSet(latest.wordSet)
+        setSelectedChapter(String(latest.chapter))
       }
 
       setLoading(false)
@@ -142,27 +149,38 @@ export default function Home() {
     [selectedWordSet, selectedChapter]
   )
 
-  async function handleResetStats() {
+  async function handleReset(clearBookmarksToo: boolean) {
     const targetIds = words.filter(isInResetScope).map(w => w.id)
-    if (targetIds.length === 0) return
-    setWordStats(prev => {
-      const next = new Map(prev)
-      targetIds.forEach(id => next.delete(id))
-      return next
-    })
-    setResetKey(k => k + 1)
-    await resetWordStats(targetIds)
-  }
+    let nextStats = wordStats
+    if (targetIds.length > 0) {
+      nextStats = new Map(wordStats)
+      targetIds.forEach(id => nextStats.delete(id))
+      setWordStats(nextStats)
+      setResetKey(k => k + 1)
+    }
 
-  async function handleUnbookmarkScope() {
-    const targets = words.filter(w => bookmarked.has(w.id) && isInResetScope(w))
-    if (targets.length === 0) return
-    setBookmarked(prev => {
-      const next = new Set(prev)
-      targets.forEach(w => next.delete(w.id))
-      return next
-    })
-    await Promise.all(targets.map(w => setBookmark(w.id, false)))
+    const bookmarkTargets = clearBookmarksToo
+      ? words.filter(w => bookmarked.has(w.id) && isInResetScope(w))
+      : []
+    if (bookmarkTargets.length > 0) {
+      setBookmarked(prev => {
+        const next = new Set(prev)
+        bookmarkTargets.forEach(w => next.delete(w.id))
+        return next
+      })
+    }
+
+    setStudySecondsLeft(null)
+    setStudyPaused(false)
+    setSelectedQuestion('')
+    setQuery('')
+    setBookmarkOnly(false)
+    const latest = resolveStudyScope(words, Array.from(nextStats.values()))
+    setSelectedWordSet(latest?.wordSet ?? '')
+    setSelectedChapter(latest ? String(latest.chapter) : '')
+
+    if (targetIds.length > 0) await resetWordStats(targetIds)
+    if (bookmarkTargets.length > 0) await Promise.all(bookmarkTargets.map(w => setBookmark(w.id, false)))
   }
 
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
@@ -282,16 +300,38 @@ export default function Home() {
   }, [wordSetFilteredWords, selectedChapter, selectedQuestion])
 
   const bookmarkCount = useMemo(
-    () => filteredWords.filter(w => bookmarked.has(w.id)).length,
-    [filteredWords, bookmarked]
+    () => visibleWords.filter(w => bookmarked.has(w.id)).length,
+    [visibleWords, bookmarked]
   )
 
   const displayWords = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return filteredWords
+    const searchingFullPool = bookmarkOnly || q.length > 0
+    const base = searchingFullPool ? visibleWords : filteredWords
+    const result = base
       .filter(w => !bookmarkOnly || bookmarked.has(w.id))
       .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
-  }, [filteredWords, bookmarkOnly, bookmarked, query])
+
+    if (q) {
+      const score = (w: Word) => {
+        const word = w.word.toLowerCase()
+        const meaning = w.meaning.toLowerCase()
+        const pron = (w.pronunciation ?? '').toLowerCase()
+        if (word === q) return 0
+        if (word.startsWith(q)) return 1
+        if (meaning.startsWith(q)) return 2
+        if (word.includes(q)) return 3
+        if (meaning.includes(q)) return 4
+        if (pron.includes(q)) return 5
+        return 6
+      }
+      return [...result].sort((a, b) => score(a) - score(b))
+    }
+    if (bookmarkOnly) {
+      return [...result].sort((a, b) => a.chapter - b.chapter || a.question - b.question)
+    }
+    return [...result].sort((a, b) => a.word.localeCompare(b.word))
+  }, [filteredWords, visibleWords, bookmarkOnly, bookmarked, query])
 
   function handleWordSetChange(ws: string) {
     setSelectedWordSet(ws)
@@ -308,15 +348,25 @@ export default function Home() {
     setBookmarkOnly(false)
   }
 
-  function handleResetView() {
-    setStudySecondsLeft(null)
-    setStudyPaused(false)
-    setSelectedWordSet('')
-    setSelectedChapter('')
+  function handleBackFromDictionary() {
     setSelectedQuestion('')
     setQuery('')
     setBookmarkOnly(false)
-    setWords(prev => shuffle(prev))
+    const latest = resolveStudyScope(words, Array.from(wordStats.values()))
+    setSelectedWordSet(latest?.wordSet ?? '')
+    setSelectedChapter(latest ? String(latest.chapter) : '')
+    setView('list')
+  }
+
+  function handleResetView() {
+    setStudySecondsLeft(null)
+    setStudyPaused(false)
+    setSelectedQuestion('')
+    setQuery('')
+    setBookmarkOnly(false)
+    const latest = resolveStudyScope(words, Array.from(wordStats.values()))
+    setSelectedWordSet(latest?.wordSet ?? '')
+    setSelectedChapter(latest ? String(latest.chapter) : '')
   }
 
   const quizSetWords = useMemo(
@@ -340,8 +390,7 @@ export default function Home() {
           isStudying={studySecondsLeft !== null}
           isStudyPaused={studyPaused}
           studySecondsLeft={studySecondsLeft}
-          onResetStats={handleResetStats}
-          onResetBookmarksInScope={handleUnbookmarkScope}
+          onReset={handleReset}
           onResetView={handleResetView}
           wordSets={wordSets}
           selectedWordSet={selectedWordSet}
@@ -406,7 +455,7 @@ export default function Home() {
         {view === 'dictionary' && (
           <DictionaryView
             words={words}
-            onBack={() => setView('list')}
+            onBack={handleBackFromDictionary}
           />
         )}
       </main>

@@ -220,7 +220,9 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
             <div className="flex items-start justify-between gap-2">
               <span className="text-2xl font-bold text-zinc-900 break-words min-w-0">{w.word}</span>
               {(w.chapter > 0 || w.question > 0) && (
-                <span className="text-base text-zinc-600 shrink-0 mt-1">{w.chapter}-{w.question}</span>
+                <span className="text-base text-zinc-600 shrink-0 mt-1">
+                  {[w.chapter > 0 ? `${w.chapter}챕터` : null, w.question > 0 ? `${w.question}번` : null].filter(Boolean).join(' ')}
+                </span>
               )}
             </div>
             {/* 뜻 + 발음 (탭 토글) */}
