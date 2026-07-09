@@ -19,20 +19,34 @@ export interface VocabRow {
 
 export async function fetchVocabulary(): Promise<VocabRow[]> {
   if (!supabase) return []
-  const { data, error } = await supabase
-    .from('vocabulary')
-    .select('id, word, meaning, chapter, question, pronunciation, word_set')
-    .order('created_at', { ascending: true })
-  if (error) { console.error(error); return [] }
-  return (data ?? []).map(r => ({
-    id: r.id,
-    word: r.word,
-    meaning: r.meaning,
-    chapter: r.chapter,
-    question: r.question,
-    pronunciation: r.pronunciation ?? undefined,
-    wordSet: r.word_set ?? undefined,
-  }))
+  const pageSize = 1000
+  const rows: Array<{
+    id: string; word: string; meaning: string; chapter: number
+    question: number; pronunciation: string | null; word_set: string | null
+  }> = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('vocabulary')
+      .select('id, word, meaning, chapter, question, pronunciation, word_set')
+      .order('created_at', { ascending: true })
+      .range(from, from + pageSize - 1)
+    if (error) { console.error(error); return rows.map(mapVocabRow) }
+    rows.push(...(data ?? []))
+    if (!data || data.length < pageSize) break
+  }
+  return rows.map(mapVocabRow)
+
+  function mapVocabRow(r: (typeof rows)[number]): VocabRow {
+    return {
+      id: r.id,
+      word: r.word,
+      meaning: r.meaning,
+      chapter: r.chapter,
+      question: r.question,
+      pronunciation: r.pronunciation ?? undefined,
+      wordSet: r.word_set ?? undefined,
+    }
+  }
 }
 
 export async function fetchBookmarks(): Promise<string[]> {
