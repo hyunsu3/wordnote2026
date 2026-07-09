@@ -22,32 +22,63 @@ interface AddWordModalProps {
 
 type Tab = 'manual' | 'csv'
 
+type CsvField = 'word' | 'meaning' | 'chapter' | 'question' | 'pronunciation' | 'wordSet'
+
+// 우리 앱 템플릿(단어,뜻,챕터번호,문항번호,단어세트)과 Supabase 테이블 전체 스키마 내보내기
+// (word,meaning,chapter,question,pronunciation,bookmarked,tap_count,example,synonym,antonym,word_set)
+// 헤더를 모두 인식한다. 인식하지 못하는 열(bookmarked, tap_count, example, synonym, antonym 등)은 무시한다.
+const CSV_HEADER_ALIASES: Record<string, CsvField> = {
+  word: 'word', '단어': 'word',
+  meaning: 'meaning', '뜻': 'meaning',
+  chapter: 'chapter', '챕터번호': 'chapter', '챕터': 'chapter',
+  question: 'question', '문항번호': 'question', '문항': 'question',
+  pronunciation: 'pronunciation', '발음': 'pronunciation',
+  word_set: 'wordSet', wordset: 'wordSet', '단어세트': 'wordSet',
+}
+
+function parseCsvLine(line: string): string[] {
+  const cols: string[] = []
+  let cur = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') { inQuote = !inQuote; continue }
+    if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = ''; continue }
+    cur += ch
+  }
+  cols.push(cur.trim())
+  return cols
+}
+
 function parseCSV(text: string, defaultWordSet?: string): WordEntry[] {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim())
+  if (lines.length === 0) return []
+
+  const headerCells = parseCsvLine(lines[0]).map(c => c.toLowerCase().replace(/\(선택\)/g, '').trim())
+  const headerFields = headerCells.map(c => CSV_HEADER_ALIASES[c])
+  const hasRecognizedHeader = headerFields.some(Boolean)
+
+  const dataLines = hasRecognizedHeader ? lines.slice(1) : lines
+  const fields: (CsvField | undefined)[] = hasRecognizedHeader
+    ? headerFields
+    : ['word', 'meaning', 'chapter', 'question', 'wordSet']
+
   const entries: WordEntry[] = []
+  for (const line of dataLines) {
+    const cols = parseCsvLine(line)
+    const row: Partial<Record<CsvField, string>> = {}
+    fields.forEach((field, i) => { if (field && cols[i] !== undefined) row[field] = cols[i] })
 
-  for (const line of lines) {
-    const cols: string[] = []
-    let cur = ''
-    let inQuote = false
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i]
-      if (ch === '"') { inQuote = !inQuote; continue }
-      if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = ''; continue }
-      cur += ch
-    }
-    cols.push(cur.trim())
-
-    const [word, meaning, chapter, question, wordSet] = cols
-    if (!word || !meaning) continue
-    if (word.toLowerCase() === '단어' || word.toLowerCase() === 'word') continue
+    if (!row.word || !row.meaning) continue
+    if (!hasRecognizedHeader && (row.word.toLowerCase() === '단어' || row.word.toLowerCase() === 'word')) continue
 
     entries.push({
-      word,
-      meaning,
-      chapter: Number(chapter) || 0,
-      question: Number(question) || 0,
-      wordSet: wordSet || defaultWordSet || undefined,
+      word: row.word,
+      meaning: row.meaning,
+      chapter: Number(row.chapter) || 0,
+      question: Number(row.question) || 0,
+      pronunciation: row.pronunciation || undefined,
+      wordSet: row.wordSet || defaultWordSet || undefined,
     })
   }
   return entries
@@ -94,6 +125,16 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
     if (e.key === 'Escape') onClose()
   }
 
+  function decodeCsvBuffer(buffer: ArrayBuffer): string {
+    try {
+      // 유효한 UTF-8이면 그대로 사용 (fatal 모드라 깨진 바이트가 있으면 예외 발생)
+      return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+    } catch {
+      // UTF-8이 아니면 엑셀이 한글 Windows 기본 인코딩(EUC-KR/CP949)으로 저장한 경우로 간주
+      return new TextDecoder('euc-kr').decode(buffer)
+    }
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -101,10 +142,7 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
     const reader = new FileReader()
     reader.onload = (ev) => {
       const buffer = ev.target?.result as ArrayBuffer
-      const bytes = new Uint8Array(buffer)
-      const hasUtf8Bom = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF
-      // BOM 없는 CSV는 엑셀이 한글 Windows 기본 인코딩(EUC-KR/CP949)으로 저장한 경우가 많음
-      const text = new TextDecoder(hasUtf8Bom ? 'utf-8' : 'euc-kr').decode(buffer)
+      const text = decodeCsvBuffer(buffer)
       setCsvEntries(parseCSV(text, defaultWordSet))
     }
     reader.readAsArrayBuffer(file)
