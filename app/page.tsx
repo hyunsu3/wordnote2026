@@ -36,6 +36,7 @@ export default function Home() {
   const [selectedWordSet, setSelectedWordSet] = useState<string>('')
   const [selectedChapter, setSelectedChapter] = useState<string>('')
   const [selectedQuestion, setSelectedQuestion] = useState<string>('')
+  const [studySecondsLeft, setStudySecondsLeft] = useState<number | null>(null)
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
@@ -108,10 +109,33 @@ export default function Home() {
     await updateWord(updated)
   }
 
+  const isInResetScope = useCallback((w: Word) =>
+    (!selectedWordSet || w.wordSet === selectedWordSet) &&
+    (!selectedChapter || w.chapter === Number(selectedChapter)),
+    [selectedWordSet, selectedChapter]
+  )
+
   async function handleResetStats() {
-    setWordStats(new Map())
+    const targetIds = words.filter(isInResetScope).map(w => w.id)
+    if (targetIds.length === 0) return
+    setWordStats(prev => {
+      const next = new Map(prev)
+      targetIds.forEach(id => next.delete(id))
+      return next
+    })
     setResetKey(k => k + 1)
-    await resetWordStats()
+    await resetWordStats(targetIds)
+  }
+
+  async function handleUnbookmarkScope() {
+    const targets = words.filter(w => bookmarked.has(w.id) && isInResetScope(w))
+    if (targets.length === 0) return
+    setBookmarked(prev => {
+      const next = new Set(prev)
+      targets.forEach(w => next.delete(w.id))
+      return next
+    })
+    await Promise.all(targets.map(w => setBookmark(w.id, false)))
   }
 
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
@@ -138,11 +162,13 @@ export default function Home() {
   }
 
   function handleSelectQuizSet(chapter: number, question: number) {
+    setStudySecondsLeft(null)
     setQuizSet({ chapter, question })
     setView('quiz')
   }
 
   function handleStartQuiz() {
+    setStudySecondsLeft(null)
     if (selectedChapter && selectedQuestion) {
       setQuizSet({ chapter: Number(selectedChapter), question: Number(selectedQuestion) })
       setView('quiz')
@@ -150,6 +176,27 @@ export default function Home() {
       setView('quiz-sets')
     }
   }
+
+  const STUDY_DURATION_SECONDS = 60 // TODO: 테스트 후 600으로 되돌리기
+
+  function handleToggleStudy() {
+    if (studySecondsLeft !== null) {
+      setStudySecondsLeft(null)
+    } else {
+      setView('list')
+      setStudySecondsLeft(STUDY_DURATION_SECONDS)
+    }
+  }
+
+  useEffect(() => {
+    if (studySecondsLeft === null || studySecondsLeft <= 0) return
+    const timer = setTimeout(() => setStudySecondsLeft(s => (s !== null ? s - 1 : null)), 1000)
+    return () => clearTimeout(timer)
+  }, [studySecondsLeft])
+
+  useEffect(() => {
+    if (studySecondsLeft === 0) handleStartQuiz()
+  }, [studySecondsLeft])
 
   const quizSetsFilterChapter = selectedChapter && !selectedQuestion ? Number(selectedChapter) : null
 
@@ -209,6 +256,7 @@ export default function Home() {
   }
 
   function handleResetView() {
+    setStudySecondsLeft(null)
     setSelectedWordSet('')
     setSelectedChapter('')
     setSelectedQuestion('')
@@ -234,7 +282,11 @@ export default function Home() {
         <Header
           onAddWord={() => setIsAddModalOpen(true)}
           onStartQuiz={handleStartQuiz}
+          onToggleStudy={handleToggleStudy}
+          isStudying={studySecondsLeft !== null}
+          studySecondsLeft={studySecondsLeft}
           onResetStats={handleResetStats}
+          onResetBookmarksInScope={handleUnbookmarkScope}
           onResetView={handleResetView}
           wordSets={wordSets}
           selectedWordSet={selectedWordSet}

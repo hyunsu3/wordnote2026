@@ -129,9 +129,9 @@ export async function fetchWordStats(): Promise<WordStat[]> {
   }))
 }
 
-export async function resetWordStats(): Promise<void> {
-  if (!supabase) return
-  const { error } = await supabase.from('word_stats').delete().neq('word_id', '')
+export async function resetWordStats(wordIds: string[]): Promise<void> {
+  if (!supabase || wordIds.length === 0) return
+  const { error } = await supabase.from('word_stats').delete().in('word_id', wordIds)
   if (error) console.error(error)
 }
 

@@ -5,7 +5,11 @@ import { useState, useRef } from 'react'
 interface HeaderProps {
   onAddWord: () => void
   onStartQuiz: () => void
+  onToggleStudy: () => void
+  isStudying: boolean
+  studySecondsLeft: number | null
   onResetStats: () => void
+  onResetBookmarksInScope: () => void
   onResetView: () => void
   wordSets: string[]
   selectedWordSet: string
@@ -31,8 +35,14 @@ function questionLabel(q: number) {
   return q === 0 ? '미지정' : `${q}번`
 }
 
+function formatStudyTime(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 export default function Header({
-  onAddWord, onStartQuiz, onResetStats, onResetView,
+  onAddWord, onStartQuiz, onToggleStudy, isStudying, studySecondsLeft, onResetStats, onResetBookmarksInScope, onResetView,
   wordSets, selectedWordSet, onWordSetChange,
   chapters, questions,
   selectedChapter, selectedQuestion,
@@ -55,6 +65,10 @@ export default function Header({
     if (pw === '2245') {
       setShowPw(false)
       onResetStats()
+    } else if (pw === '224500') {
+      setShowPw(false)
+      onResetStats()
+      onResetBookmarksInScope()
     } else {
       setError(true)
       setPw('')
@@ -68,7 +82,14 @@ export default function Header({
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>맘스보카</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>맘스보카</h1>
+          {studySecondsLeft !== null && (
+            <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 text-sm font-mono font-semibold tabular-nums">
+              {formatStudyTime(studySecondsLeft)}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onAddWord}
@@ -123,12 +144,28 @@ export default function Header({
             </select>
           </>
         )}
-        <button
-          onClick={onStartQuiz}
-          className="shrink-0 px-4 py-2.5 text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors"
-        >
-          퀴즈 시작
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onToggleStudy}
+            className={`px-4 py-2.5 text-base font-medium rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors ${
+              isStudying ? 'ring-2 ring-inset ring-sky-900' : ''
+            }`}
+          >
+            {isStudying ? '잠깐 휴식' : '학습 시작'}
+          </button>
+          <button
+            onClick={onStartQuiz}
+            className="px-4 py-2.5 text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors"
+          >
+            퀴즈 시작
+          </button>
+          <button
+            disabled
+            className="px-4 py-2.5 text-base font-medium rounded-xl bg-zinc-100 text-zinc-400 cursor-not-allowed"
+          >
+            보관 처리
+          </button>
+        </div>
         <div className="flex items-center gap-2 flex-1 basis-full min-w-0">
           <button
             onClick={() => setBookmarkOnly(v => !v)}
