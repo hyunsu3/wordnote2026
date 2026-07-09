@@ -50,18 +50,24 @@ function parseCsvLine(line: string): string[] {
   return cols
 }
 
-function parseCSV(text: string, defaultWordSet?: string): WordEntry[] {
+function parseCSV(text: string, defaultWordSet?: string): { entries: WordEntry[]; error?: string } {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim())
-  if (lines.length === 0) return []
+  if (lines.length === 0) return { entries: [] }
 
   const headerCells = parseCsvLine(lines[0]).map(c => c.toLowerCase().replace(/\(선택\)/g, '').trim())
   const headerFields = headerCells.map(c => CSV_HEADER_ALIASES[c])
   const hasRecognizedHeader = headerFields.some(Boolean)
 
-  const dataLines = hasRecognizedHeader ? lines.slice(1) : lines
-  const fields: (CsvField | undefined)[] = hasRecognizedHeader
-    ? headerFields
-    : ['word', 'meaning', 'chapter', 'question', 'wordSet']
+  // 헤더가 없으면 열 순서를 추측해야 하는데, 예를 들어 5번째 열이 '단어세트'인지
+  // '발음'인지 구분할 수 없어 잘못 매핑되면 발음 값이 단어세트에 덮어써지는 등
+  // 데이터가 조용히 깨질 수 있다. 그런 사고가 실제로 있었기 때문에 추측 대신
+  // 헤더 행을 반드시 요구한다.
+  if (!hasRecognizedHeader) {
+    return { entries: [], error: '헤더를 인식하지 못했습니다. 첫 줄에 "단어,뜻,챕터번호,문항번호,단어세트" 형식의 헤더를 넣어주세요.' }
+  }
+
+  const dataLines = lines.slice(1)
+  const fields = headerFields
 
   const entries: WordEntry[] = []
   for (const line of dataLines) {
@@ -70,7 +76,6 @@ function parseCSV(text: string, defaultWordSet?: string): WordEntry[] {
     fields.forEach((field, i) => { if (field && cols[i] !== undefined) row[field] = cols[i] })
 
     if (!row.word || !row.meaning) continue
-    if (!hasRecognizedHeader && (row.word.toLowerCase() === '단어' || row.word.toLowerCase() === 'word')) continue
 
     entries.push({
       word: row.word,
@@ -81,7 +86,7 @@ function parseCSV(text: string, defaultWordSet?: string): WordEntry[] {
       wordSet: row.wordSet || defaultWordSet || undefined,
     })
   }
-  return entries
+  return { entries }
 }
 
 export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQuestion, defaultWordSet, wordSets }: AddWordModalProps) {
@@ -93,6 +98,7 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
     wordSet: defaultWordSet ?? '',
   })
   const [csvEntries, setCsvEntries] = useState<WordEntry[] | null>(null)
+  const [csvError, setCsvError] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState('')
   const submittingRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -143,7 +149,9 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
     reader.onload = (ev) => {
       const buffer = ev.target?.result as ArrayBuffer
       const text = decodeCsvBuffer(buffer)
-      setCsvEntries(parseCSV(text, defaultWordSet))
+      const { entries, error } = parseCSV(text, defaultWordSet)
+      setCsvEntries(entries)
+      setCsvError(error ?? null)
     }
     reader.readAsArrayBuffer(file)
   }
@@ -295,7 +303,10 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
                 onChange={handleFileChange}
                 className="hidden"
               />
-              {csvEntries !== null && (
+              {csvError && (
+                <p className="text-sm text-red-500">{csvError}</p>
+              )}
+              {csvEntries !== null && !csvError && (
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">{csvEntries.length}개</span>의 단어가 파싱되었습니다.
                 </p>
