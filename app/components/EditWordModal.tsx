@@ -9,21 +9,24 @@ interface Word {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
 }
 
 interface EditWordModalProps {
   word: Word
   onSave: (updated: Word) => void
   onCancel: () => void
+  wordSets: string[]
 }
 
-export default function EditWordModal({ word, onSave, onCancel }: EditWordModalProps) {
+export default function EditWordModal({ word, onSave, onCancel, wordSets }: EditWordModalProps) {
   const [form, setForm] = useState({
     word: word.word,
     meaning: word.meaning,
     pronunciation: word.pronunciation ?? '',
     chapter: word.chapter === 0 ? '' : String(word.chapter),
     question: word.question === 0 ? '' : String(word.question),
+    wordSet: word.wordSet ?? '',
   })
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -39,6 +42,7 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
       pronunciation: form.pronunciation.trim() || undefined,
       chapter: Number(form.chapter) || 0,
       question: Number(form.question) || 0,
+      wordSet: form.wordSet.trim() || undefined,
     })
   }
 
@@ -80,6 +84,18 @@ export default function EditWordModal({ word, onSave, onCancel }: EditWordModalP
             placeholder="발음 (선택, 예: ɪnˈtɜːrprɪt)"
             className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
           />
+          <input
+            name="wordSet"
+            list="word-set-options-edit"
+            value={form.wordSet ?? ''}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="단어 세트 (선택, 예: 기말3-1)"
+            className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+          />
+          <datalist id="word-set-options-edit">
+            {wordSets.map(ws => <option key={ws} value={ws} />)}
+          </datalist>
           <div className="flex gap-2">
             <input
               name="chapter"

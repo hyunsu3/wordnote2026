@@ -7,6 +7,9 @@ interface HeaderProps {
   onStartQuiz: () => void
   onResetStats: () => void
   onResetView: () => void
+  wordSets: string[]
+  selectedWordSet: string
+  onWordSetChange: (ws: string) => void
   chapters: number[]
   questions: number[]
   selectedChapter: string
@@ -30,6 +33,7 @@ function questionLabel(q: number) {
 
 export default function Header({
   onAddWord, onStartQuiz, onResetStats, onResetView,
+  wordSets, selectedWordSet, onWordSetChange,
   chapters, questions,
   selectedChapter, selectedQuestion,
   onChapterChange, onQuestionChange,
@@ -82,6 +86,18 @@ export default function Header({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-5 py-3 border-t border-sky-50">
+        {wordSets.length > 0 && (
+          <select
+            value={selectedWordSet}
+            onChange={e => onWordSetChange(e.target.value)}
+            className={selectCls}
+          >
+            <option value="">전체 세트</option>
+            {wordSets.map(ws => (
+              <option key={ws} value={ws}>{ws}</option>
+            ))}
+          </select>
+        )}
         {chapters.length > 0 && (
           <>
             <select

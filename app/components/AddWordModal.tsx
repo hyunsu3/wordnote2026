@@ -8,6 +8,7 @@ interface WordEntry {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
 }
 
 interface AddWordModalProps {
@@ -15,12 +16,14 @@ interface AddWordModalProps {
   onClose: () => void
   defaultChapter?: number
   defaultQuestion?: number
+  defaultWordSet?: string
+  wordSets: string[]
 }
 
 type Tab = 'manual' | 'csv'
 
-function parseCSV(text: string): WordEntry[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim())
+function parseCSV(text: string, defaultWordSet?: string): WordEntry[] {
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim())
   const entries: WordEntry[] = []
 
   for (const line of lines) {
@@ -35,7 +38,7 @@ function parseCSV(text: string): WordEntry[] {
     }
     cols.push(cur.trim())
 
-    const [word, meaning, chapter, question] = cols
+    const [word, meaning, chapter, question, wordSet] = cols
     if (!word || !meaning) continue
     if (word.toLowerCase() === '단어' || word.toLowerCase() === 'word') continue
 
@@ -44,17 +47,19 @@ function parseCSV(text: string): WordEntry[] {
       meaning,
       chapter: Number(chapter) || 0,
       question: Number(question) || 0,
+      wordSet: wordSet || defaultWordSet || undefined,
     })
   }
   return entries
 }
 
-export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQuestion }: AddWordModalProps) {
+export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQuestion, defaultWordSet, wordSets }: AddWordModalProps) {
   const [tab, setTab] = useState<Tab>('manual')
   const [form, setForm] = useState({
     word: '', meaning: '', pronunciation: '',
     chapter: defaultChapter ? String(defaultChapter) : '',
     question: defaultQuestion ? String(defaultQuestion) : '',
+    wordSet: defaultWordSet ?? '',
   })
   const [csvEntries, setCsvEntries] = useState<WordEntry[] | null>(null)
   const [csvFileName, setCsvFileName] = useState('')
@@ -76,8 +81,9 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
       pronunciation: form.pronunciation.trim() || undefined,
       chapter: Number(form.chapter) || 0,
       question: Number(form.question) || 0,
+      wordSet: form.wordSet.trim() || undefined,
     }])
-    // 챕터·문항번호 유지, 단어·뜻·발음만 초기화
+    // 세트·챕터·문항번호 유지, 단어·뜻·발음만 초기화
     setForm(prev => ({ ...prev, word: '', meaning: '', pronunciation: '' }))
     submittingRef.current = false
     setTimeout(() => wordInputRef.current?.focus(), 0)
@@ -94,16 +100,31 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
     setCsvFileName(file.name)
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const text = ev.target?.result as string
-      setCsvEntries(parseCSV(text))
+      const buffer = ev.target?.result as ArrayBuffer
+      const bytes = new Uint8Array(buffer)
+      const hasUtf8Bom = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF
+      // BOM 없는 CSV는 엑셀이 한글 Windows 기본 인코딩(EUC-KR/CP949)으로 저장한 경우가 많음
+      const text = new TextDecoder(hasUtf8Bom ? 'utf-8' : 'euc-kr').decode(buffer)
+      setCsvEntries(parseCSV(text, defaultWordSet))
     }
-    reader.readAsText(file, 'utf-8')
+    reader.readAsArrayBuffer(file)
   }
 
   function handleCSVSave() {
     if (!csvEntries || csvEntries.length === 0) return
     onSave(csvEntries)
     onClose()
+  }
+
+  function handleDownloadTemplate() {
+    const header = '단어,뜻,챕터번호,문항번호,단어세트\n'
+    const blob = new Blob(['﻿' + header], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '단어_추가_양식.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const tabClass = (t: Tab) =>
@@ -155,6 +176,18 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
                 placeholder="발음 (선택, 예: ɪnˈtɜːrprɪt)"
                 className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
+              <input
+                name="wordSet"
+                list="word-set-options"
+                value={form.wordSet ?? ''}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                placeholder="단어 세트 (선택, 예: 기말3-1)"
+                className="w-full px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+              />
+              <datalist id="word-set-options">
+                {wordSets.map(ws => <option key={ws} value={ws} />)}
+              </datalist>
               <div className="flex gap-2">
                 <input
                   name="chapter"
@@ -198,8 +231,15 @@ export default function AddWordModal({ onSave, onClose, defaultChapter, defaultQ
           <>
             <div className="flex flex-col gap-3">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                CSV 형식: <span className="font-mono">단어,뜻,챕터번호,문항번호</span>
+                CSV 형식: <span className="font-mono">단어,뜻,챕터번호,문항번호,단어세트(선택)</span>
+                {defaultWordSet && <><br />단어세트를 비워두면 현재 선택된 <span className="font-medium text-zinc-700 dark:text-zinc-300">&apos;{defaultWordSet}&apos;</span> 세트로 저장됩니다.</>}
               </p>
+              <button
+                onClick={handleDownloadTemplate}
+                className="self-start text-xs font-medium text-sky-500 hover:text-sky-700 underline underline-offset-2 transition-colors"
+              >
+                빈 CSV 양식 다운로드
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center justify-center gap-2 w-full px-3 py-6 rounded-xl border-2 border-dashed border-sky-200 text-sky-400 hover:border-sky-400 hover:text-sky-600 transition-colors text-sm"

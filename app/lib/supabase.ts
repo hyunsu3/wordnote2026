@@ -14,16 +14,25 @@ export interface VocabRow {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
 }
 
 export async function fetchVocabulary(): Promise<VocabRow[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('vocabulary')
-    .select('id, word, meaning, chapter, question, pronunciation')
+    .select('id, word, meaning, chapter, question, pronunciation, word_set')
     .order('created_at', { ascending: true })
   if (error) { console.error(error); return [] }
-  return data ?? []
+  return (data ?? []).map(r => ({
+    id: r.id,
+    word: r.word,
+    meaning: r.meaning,
+    chapter: r.chapter,
+    question: r.question,
+    pronunciation: r.pronunciation ?? undefined,
+    wordSet: r.word_set ?? undefined,
+  }))
 }
 
 export async function fetchBookmarks(): Promise<string[]> {
@@ -47,7 +56,16 @@ export async function setBookmark(wordId: string, bookmarked: boolean): Promise<
 
 export async function insertWords(words: VocabRow[]): Promise<void> {
   if (!supabase || words.length === 0) return
-  const { error } = await supabase.from('vocabulary').insert(words)
+  const rows = words.map(w => ({
+    id: w.id,
+    word: w.word,
+    meaning: w.meaning,
+    chapter: w.chapter,
+    question: w.question,
+    pronunciation: w.pronunciation ?? null,
+    word_set: w.wordSet ?? null,
+  }))
+  const { error } = await supabase.from('vocabulary').insert(rows)
   if (error) console.error(error)
 }
 
@@ -55,7 +73,14 @@ export async function updateWord(word: VocabRow): Promise<void> {
   if (!supabase) return
   const { error } = await supabase
     .from('vocabulary')
-    .update({ word: word.word, meaning: word.meaning, chapter: word.chapter, question: word.question, pronunciation: word.pronunciation ?? null })
+    .update({
+      word: word.word,
+      meaning: word.meaning,
+      chapter: word.chapter,
+      question: word.question,
+      pronunciation: word.pronunciation ?? null,
+      word_set: word.wordSet ?? null,
+    })
     .eq('id', word.id)
   if (error) console.error(error)
 }
@@ -157,8 +182,9 @@ export async function incrementTapStat(params: {
   wordId: string
   word: string
   meaning: string
-}): Promise<number> {
-  if (!supabase) return 0
+}): Promise<{ tapCount: number; lastStudied: string }> {
+  if (!supabase) return { tapCount: 0, lastStudied: '' }
+  const now = new Date().toISOString()
   const { data: existing } = await supabase
     .from('word_stats')
     .select('id, tap_count')
@@ -167,8 +193,8 @@ export async function incrementTapStat(params: {
 
   if (existing) {
     const newTap = (existing.tap_count ?? 0) + 1
-    await supabase.from('word_stats').update({ tap_count: newTap }).eq('id', existing.id)
-    return newTap
+    await supabase.from('word_stats').update({ tap_count: newTap, last_studied: now }).eq('id', existing.id)
+    return { tapCount: newTap, lastStudied: now }
   } else {
     await supabase.from('word_stats').insert({
       word_id: params.wordId,
@@ -177,7 +203,8 @@ export async function incrementTapStat(params: {
       correct_count: 0,
       wrong_count: 0,
       tap_count: 1,
+      last_studied: now,
     })
-    return 1
+    return { tapCount: 1, lastStudied: now }
   }
 }

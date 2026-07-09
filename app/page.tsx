@@ -22,6 +22,7 @@ interface Word {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
 }
 
 type View = 'list' | 'quiz-sets' | 'quiz'
@@ -32,6 +33,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<View>('list')
   const [quizSet, setQuizSet] = useState<{ chapter: number; question: number } | null>(null)
+  const [selectedWordSet, setSelectedWordSet] = useState<string>('')
   const [selectedChapter, setSelectedChapter] = useState<string>('')
   const [selectedQuestion, setSelectedQuestion] = useState<string>('')
 
@@ -57,6 +59,21 @@ export default function Home() {
       setWords(shuffle(vocab))
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
+
+      let latestTime = ''
+      let latestWord: Word | null = null
+      for (const s of stats) {
+        if (!s.lastStudied || s.lastStudied <= latestTime) continue
+        const w = vocab.find(v => v.id === s.wordId)
+        if (!w) continue
+        latestTime = s.lastStudied
+        latestWord = w
+      }
+      if (latestWord) {
+        if (latestWord.wordSet) setSelectedWordSet(latestWord.wordSet)
+        setSelectedChapter(String(latestWord.chapter))
+      }
+
       setLoading(false)
     })
   }, [])
@@ -71,7 +88,7 @@ export default function Home() {
     })
   }, [])
 
-  async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number; pronunciation?: string }[]) {
+  async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number; pronunciation?: string; wordSet?: string }[]) {
     const newWords = entries.map(e => ({ id: crypto.randomUUID(), ...e }))
     setWords(prev => [...prev, ...newWords])
     await insertWords(newWords)
@@ -108,13 +125,13 @@ export default function Home() {
   }
 
   async function handleTap(wordId: string, word: string, meaning: string) {
-    const newTap = await incrementTapStat({ wordId, word, meaning })
+    const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning })
     setWordStats(prev => {
       const cur = prev.get(wordId)
       const next = new Map(prev)
       next.set(wordId, cur
-        ? { ...cur, tapCount: newTap }
-        : { wordId, correctCount: 0, wrongCount: 0, lastStudied: null, tapCount: newTap }
+        ? { ...cur, tapCount: newTap, lastStudied }
+        : { wordId, correctCount: 0, wrongCount: 0, lastStudied, tapCount: newTap }
       )
       return next
     })
@@ -136,23 +153,33 @@ export default function Home() {
 
   const quizSetsFilterChapter = selectedChapter && !selectedQuestion ? Number(selectedChapter) : null
 
-  const chapters = useMemo(
-    () => [...new Set(words.map(w => w.chapter))].sort((a, b) => a - b),
+  const wordSets = useMemo(
+    () => [...new Set(words.map(w => w.wordSet).filter((v): v is string => !!v))],
     [words]
+  )
+
+  const wordSetFilteredWords = useMemo(
+    () => selectedWordSet ? words.filter(w => w.wordSet === selectedWordSet) : words,
+    [words, selectedWordSet]
+  )
+
+  const chapters = useMemo(
+    () => [...new Set(wordSetFilteredWords.map(w => w.chapter))].sort((a, b) => a - b),
+    [wordSetFilteredWords]
   )
 
   const questions = useMemo(() => {
     if (!selectedChapter) return []
     const ch = Number(selectedChapter)
-    return [...new Set(words.filter(w => w.chapter === ch).map(w => w.question))].sort((a, b) => a - b)
-  }, [words, selectedChapter])
+    return [...new Set(wordSetFilteredWords.filter(w => w.chapter === ch).map(w => w.question))].sort((a, b) => a - b)
+  }, [wordSetFilteredWords, selectedChapter])
 
   const filteredWords = useMemo(() => {
-    let result = words
+    let result = wordSetFilteredWords
     if (selectedChapter) result = result.filter(w => w.chapter === Number(selectedChapter))
     if (selectedQuestion) result = result.filter(w => w.question === Number(selectedQuestion))
     return result
-  }, [words, selectedChapter, selectedQuestion])
+  }, [wordSetFilteredWords, selectedChapter, selectedQuestion])
 
   const bookmarkCount = useMemo(
     () => filteredWords.filter(w => bookmarked.has(w.id)).length,
@@ -166,6 +193,14 @@ export default function Home() {
       .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
   }, [filteredWords, bookmarkOnly, bookmarked, query])
 
+  function handleWordSetChange(ws: string) {
+    setSelectedWordSet(ws)
+    setSelectedChapter('')
+    setSelectedQuestion('')
+    setQuery('')
+    setBookmarkOnly(false)
+  }
+
   function handleChapterChange(ch: string) {
     setSelectedChapter(ch)
     setSelectedQuestion('')
@@ -174,6 +209,7 @@ export default function Home() {
   }
 
   function handleResetView() {
+    setSelectedWordSet('')
     setSelectedChapter('')
     setSelectedQuestion('')
     setQuery('')
@@ -183,9 +219,9 @@ export default function Home() {
 
   const quizSetWords = useMemo(
     () => quizSet !== null
-      ? words.filter(w => w.chapter === quizSet.chapter && w.question === quizSet.question)
+      ? wordSetFilteredWords.filter(w => w.chapter === quizSet.chapter && w.question === quizSet.question)
       : [],
-    [words, quizSet]
+    [wordSetFilteredWords, quizSet]
   )
   const chapterLabel = !quizSet ? ''
     : quizSet.chapter === 0 ? '챕터 미지정'
@@ -200,6 +236,9 @@ export default function Home() {
           onStartQuiz={handleStartQuiz}
           onResetStats={handleResetStats}
           onResetView={handleResetView}
+          wordSets={wordSets}
+          selectedWordSet={selectedWordSet}
+          onWordSetChange={handleWordSetChange}
           chapters={chapters}
           questions={questions}
           selectedChapter={selectedChapter}
@@ -236,7 +275,7 @@ export default function Home() {
         )}
         {view === 'quiz-sets' && (
           <QuizSetSelector
-            words={words}
+            words={wordSetFilteredWords}
             filterChapter={quizSetsFilterChapter}
             onSelect={handleSelectQuizSet}
             onBack={() => setView('list')}
@@ -259,6 +298,8 @@ export default function Home() {
           onClose={() => setIsAddModalOpen(false)}
           defaultChapter={selectedChapter ? Number(selectedChapter) : undefined}
           defaultQuestion={selectedQuestion ? Number(selectedQuestion) : undefined}
+          defaultWordSet={selectedWordSet || undefined}
+          wordSets={wordSets}
         />
       )}
       {deletingWord && (
@@ -273,6 +314,7 @@ export default function Home() {
           word={editingWord}
           onSave={handleEditSave}
           onCancel={() => setEditingWord(null)}
+          wordSets={wordSets}
         />
       )}
     </div>
