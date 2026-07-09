@@ -9,8 +9,28 @@ interface Word {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
   archived: boolean
+  example?: string
+  synonym?: string
+  antonym?: string
 }
+
+function chapterLabel(ch: number) {
+  return ch === 0 ? '미지정' : `${ch}챕터`
+}
+
+// Fixed-order categorical palette, validated for CVD-safe adjacent contrast (dataviz skill).
+const WORD_SET_TAG_PALETTE = [
+  { bg: 'bg-sky-100', text: 'text-sky-700' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-600' },
+  { bg: 'bg-amber-100', text: 'text-amber-700' },
+  { bg: 'bg-green-100', text: 'text-green-700' },
+  { bg: 'bg-violet-100', text: 'text-violet-700' },
+  { bg: 'bg-rose-100', text: 'text-rose-700' },
+  { bg: 'bg-pink-100', text: 'text-pink-700' },
+  { bg: 'bg-orange-100', text: 'text-orange-700' },
+]
 
 interface DictionaryViewProps {
   words: Word[]
@@ -43,6 +63,12 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
     () => sortedWords.filter(w => firstLetterOf(w.word) === selectedLetter),
     [sortedWords, selectedLetter]
   )
+
+  const wordSetTagOf = useMemo(() => {
+    const sets = [...new Set(words.map(w => w.wordSet).filter((v): v is string => !!v))].sort()
+    const map = new Map(sets.map((ws, i) => [ws, WORD_SET_TAG_PALETTE[i % WORD_SET_TAG_PALETTE.length]]))
+    return (wordSet: string) => map.get(wordSet) ?? { bg: 'bg-zinc-100', text: 'text-zinc-500' }
+  }, [words])
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -93,6 +119,14 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
                   {w.pronunciation && (
                     <span className="text-sm text-zinc-400">[{w.pronunciation}]</span>
                   )}
+                  {w.wordSet && (
+                    <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${wordSetTagOf(w.wordSet).bg} ${wordSetTagOf(w.wordSet).text}`}>
+                      {w.wordSet}
+                    </span>
+                  )}
+                  <span className="text-xs font-medium text-zinc-500 bg-zinc-100 rounded-full px-2 py-0.5">
+                    {chapterLabel(w.chapter)}
+                  </span>
                   {w.archived && (
                     <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
                       보관됨
@@ -100,6 +134,23 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
                   )}
                 </div>
                 <span className="text-base text-zinc-600">{w.meaning}</span>
+                {(w.synonym || w.antonym) && (
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    {w.synonym && (
+                      <span className="text-sky-600">
+                        <span className="text-zinc-400">동의어</span> {w.synonym}
+                      </span>
+                    )}
+                    {w.antonym && (
+                      <span className="text-rose-600">
+                        <span className="text-zinc-400">반의어</span> {w.antonym}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {w.example && (
+                  <p className="text-sm text-zinc-500 italic">&quot;{w.example}&quot;</p>
+                )}
               </li>
             ))}
           </ul>

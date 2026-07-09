@@ -16,6 +16,9 @@ export interface VocabRow {
   pronunciation?: string
   wordSet?: string
   archived: boolean
+  example?: string
+  synonym?: string
+  antonym?: string
 }
 
 export async function fetchVocabulary(): Promise<VocabRow[]> {
@@ -24,11 +27,12 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
   const rows: Array<{
     id: string; word: string; meaning: string; chapter: number
     question: number; pronunciation: string | null; word_set: string | null; archived: boolean | null
+    example: string | null; synonym: string | null; antonym: string | null
   }> = []
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
       .from('vocabulary')
-      .select('id, word, meaning, chapter, question, pronunciation, word_set, archived')
+      .select('id, word, meaning, chapter, question, pronunciation, word_set, archived, example, synonym, antonym')
       .order('created_at', { ascending: true })
       .range(from, from + pageSize - 1)
     if (error) { console.error(error); return rows.map(mapVocabRow) }
@@ -47,6 +51,9 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
       pronunciation: r.pronunciation ?? undefined,
       wordSet: r.word_set ?? undefined,
       archived: r.archived ?? false,
+      example: r.example ?? undefined,
+      synonym: r.synonym ?? undefined,
+      antonym: r.antonym ?? undefined,
     }
   }
 }

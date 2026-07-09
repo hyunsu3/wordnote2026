@@ -27,6 +27,9 @@ interface Word {
   pronunciation?: string
   wordSet?: string
   archived: boolean
+  example?: string
+  synonym?: string
+  antonym?: string
 }
 
 type View = 'list' | 'quiz-sets' | 'quiz' | 'dictionary'

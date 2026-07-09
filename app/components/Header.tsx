@@ -60,9 +60,11 @@ export default function Header({
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function openReset() {
+    setIsSettingsOpen(false)
     setPw('')
     setError(false)
     setShowPw(true)
@@ -103,27 +105,19 @@ export default function Header({
         <div className="flex items-center gap-2">
           <button
             onClick={onAddWord}
-            className="flex items-center justify-center px-4 py-2.5 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
+            className="flex items-center justify-center w-11 h-11 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
             +
           </button>
           <button
-            onClick={onOpenDictionary}
-            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-500 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+            onClick={() => setIsSettingsOpen(true)}
+            aria-label="설정"
+            className="flex items-center justify-center w-11 h-11 rounded-xl text-zinc-500 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
           >
-            A to Z
-          </button>
-          <button
-            onClick={onOpenArchived}
-            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-500 hover:text-amber-700 hover:bg-amber-50 border border-zinc-200 hover:border-amber-200 transition-colors"
-          >
-            보관함{archivedCount > 0 && ` ${archivedCount}`}
-          </button>
-          <button
-            onClick={openReset}
-            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
-          >
-            Init!
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
           </button>
         </div>
       </div>
@@ -226,6 +220,49 @@ export default function Header({
         </div>
       </div>
     </header>
+
+      {isSettingsOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40"
+          onClick={() => setIsSettingsOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed top-0 right-0 z-50 h-full w-72 max-w-[85vw] bg-white shadow-xl transition-transform duration-300 ease-in-out flex flex-col ${
+          isSettingsOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-sky-100">
+          <h2 className="text-lg font-bold text-zinc-900">설정</h2>
+          <button
+            onClick={() => setIsSettingsOpen(false)}
+            aria-label="닫기"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 p-5">
+          <button
+            onClick={() => { setIsSettingsOpen(false); onOpenDictionary() }}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+          >
+            A to Z
+          </button>
+          <button
+            onClick={() => { setIsSettingsOpen(false); onOpenArchived() }}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-amber-700 hover:bg-amber-50 border border-zinc-200 hover:border-amber-200 transition-colors"
+          >
+            보관함{archivedCount > 0 && ` ${archivedCount}`}
+          </button>
+          <button
+            onClick={openReset}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
+          >
+            Init!
+          </button>
+        </div>
+      </aside>
 
       {showPw && (
         <div
