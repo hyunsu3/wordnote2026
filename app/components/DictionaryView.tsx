@@ -16,10 +16,6 @@ interface Word {
   antonym?: string
 }
 
-function chapterLabel(ch: number) {
-  return ch === 0 ? '미지정' : `${ch}챕터`
-}
-
 // Fixed-order categorical palette, validated for CVD-safe adjacent contrast (dataviz skill).
 const WORD_SET_TAG_PALETTE = [
   { bg: 'bg-sky-100', text: 'text-sky-700' },
@@ -122,14 +118,6 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
                   {w.wordSet && (
                     <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${wordSetTagOf(w.wordSet).bg} ${wordSetTagOf(w.wordSet).text}`}>
                       {w.wordSet}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium text-zinc-500 bg-zinc-100 rounded-full px-2 py-0.5">
-                    {chapterLabel(w.chapter)}
-                  </span>
-                  {w.archived && (
-                    <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                      보관됨
                     </span>
                   )}
                 </div>
