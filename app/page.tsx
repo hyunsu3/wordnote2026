@@ -37,6 +37,7 @@ export default function Home() {
   const [selectedChapter, setSelectedChapter] = useState<string>('')
   const [selectedQuestion, setSelectedQuestion] = useState<string>('')
   const [studySecondsLeft, setStudySecondsLeft] = useState<number | null>(null)
+  const [studyPaused, setStudyPaused] = useState(false)
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
@@ -163,36 +164,59 @@ export default function Home() {
 
   function handleSelectQuizSet(chapter: number, question: number) {
     setStudySecondsLeft(null)
+    setStudyPaused(false)
     setQuizSet({ chapter, question })
     setView('quiz')
   }
 
+  function handleQuizGoToList() {
+    if (quizSet) {
+      setSelectedChapter(String(quizSet.chapter))
+      setSelectedQuestion(String(quizSet.question))
+    }
+    setView('list')
+  }
+
   function handleStartQuiz() {
     setStudySecondsLeft(null)
+    setStudyPaused(false)
     if (selectedChapter && selectedQuestion) {
       setQuizSet({ chapter: Number(selectedChapter), question: Number(selectedQuestion) })
+      setView('quiz')
+      return
+    }
+
+    const candidates = selectedChapter
+      ? wordSetFilteredWords.filter(w => w.chapter === Number(selectedChapter))
+      : wordSetFilteredWords
+    const groupKeys = new Set(candidates.map(w => `${w.chapter}-${w.question}`))
+
+    if (groupKeys.size === 1) {
+      const [chapter, question] = [...groupKeys][0].split('-').map(Number)
+      setQuizSet({ chapter, question })
       setView('quiz')
     } else {
       setView('quiz-sets')
     }
   }
 
-  const STUDY_DURATION_SECONDS = 60 // TODO: 테스트 후 600으로 되돌리기
+  const STUDY_DURATION_SECONDS = 600
 
   function handleToggleStudy() {
     if (studySecondsLeft !== null) {
-      setStudySecondsLeft(null)
+      setStudyPaused(p => !p)
     } else {
       setView('list')
       setStudySecondsLeft(STUDY_DURATION_SECONDS)
+      setStudyPaused(false)
     }
   }
 
   useEffect(() => {
-    if (studySecondsLeft === null || studySecondsLeft <= 0) return
+    if (studySecondsLeft === null || studySecondsLeft <= 0 || studyPaused) return
     const timer = setTimeout(() => setStudySecondsLeft(s => (s !== null ? s - 1 : null)), 1000)
     return () => clearTimeout(timer)
-  }, [studySecondsLeft])
+  }, [studySecondsLeft, studyPaused])
 
   useEffect(() => {
     if (studySecondsLeft === 0) handleStartQuiz()
@@ -257,6 +281,7 @@ export default function Home() {
 
   function handleResetView() {
     setStudySecondsLeft(null)
+    setStudyPaused(false)
     setSelectedWordSet('')
     setSelectedChapter('')
     setSelectedQuestion('')
@@ -284,6 +309,7 @@ export default function Home() {
           onStartQuiz={handleStartQuiz}
           onToggleStudy={handleToggleStudy}
           isStudying={studySecondsLeft !== null}
+          isStudyPaused={studyPaused}
           studySecondsLeft={studySecondsLeft}
           onResetStats={handleResetStats}
           onResetBookmarksInScope={handleUnbookmarkScope}
@@ -340,6 +366,7 @@ export default function Home() {
             chapterLabel={chapterLabel}
             onAnswer={handleAnswer}
             onBack={() => setView('quiz-sets')}
+            onGoToList={handleQuizGoToList}
           />
         )}
       </main>

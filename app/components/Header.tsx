@@ -7,6 +7,7 @@ interface HeaderProps {
   onStartQuiz: () => void
   onToggleStudy: () => void
   isStudying: boolean
+  isStudyPaused: boolean
   studySecondsLeft: number | null
   onResetStats: () => void
   onResetBookmarksInScope: () => void
@@ -42,7 +43,7 @@ function formatStudyTime(seconds: number): string {
 }
 
 export default function Header({
-  onAddWord, onStartQuiz, onToggleStudy, isStudying, studySecondsLeft, onResetStats, onResetBookmarksInScope, onResetView,
+  onAddWord, onStartQuiz, onToggleStudy, isStudying, isStudyPaused, studySecondsLeft, onResetStats, onResetBookmarksInScope, onResetView,
   wordSets, selectedWordSet, onWordSetChange,
   chapters, questions,
   selectedChapter, selectedQuestion,
@@ -81,15 +82,17 @@ export default function Header({
   return (
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>맘스보카</h1>
-          {studySecondsLeft !== null && (
-            <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 text-sm font-mono font-semibold tabular-nums">
-              {formatStudyTime(studySecondsLeft)}
-            </span>
-          )}
-        </div>
+      <div className="relative flex items-center justify-between px-5 py-4">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>보카보카</h1>
+        {studySecondsLeft !== null && (
+          <span
+            className={`absolute left-1/2 -translate-x-1/2 text-3xl font-mono font-bold tabular-nums ${
+              studySecondsLeft <= 60 ? 'text-red-500' : 'text-green-500'
+            } ${isStudyPaused ? 'opacity-40' : ''}`}
+          >
+            {formatStudyTime(studySecondsLeft)}
+          </span>
+        )}
         <div className="flex items-center gap-2">
           <button
             onClick={onAddWord}
@@ -151,7 +154,7 @@ export default function Header({
               isStudying ? 'ring-2 ring-inset ring-sky-900' : ''
             }`}
           >
-            {isStudying ? '잠깐 휴식' : '학습 시작'}
+            {!isStudying ? '학습 시작' : isStudyPaused ? '이어하기' : '잠깐 휴식'}
           </button>
           <button
             onClick={onStartQuiz}

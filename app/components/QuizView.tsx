@@ -27,6 +27,7 @@ interface QuizViewProps {
   chapterLabel: string
   onAnswer: (wordId: string, word: string, meaning: string, isCorrect: boolean) => void
   onBack: () => void
+  onGoToList: () => void
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -61,7 +62,7 @@ function buildQuestions(setWords: Word[], allWords: Word[]): Question[] {
   })
 }
 
-export default function QuizView({ setWords, allWords, chapterLabel, onAnswer, onBack }: QuizViewProps) {
+export default function QuizView({ setWords, allWords, chapterLabel, onAnswer, onBack, onGoToList }: QuizViewProps) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
@@ -141,10 +142,10 @@ export default function QuizView({ setWords, allWords, chapterLabel, onAnswer, o
         </div>
         <div className="flex gap-3">
           <button
-            onClick={onBack}
+            onClick={onGoToList}
             className="px-5 py-2.5 text-sm font-medium rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
-            세트 선택으로
+            단어 목록으로
           </button>
           <button
             onClick={() => {
