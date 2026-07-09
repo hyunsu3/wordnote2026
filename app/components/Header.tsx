@@ -30,6 +30,7 @@ interface HeaderProps {
   onArchive: () => void
   archivedCount: number
   onOpenArchived: () => void
+  onOpenDictionary: () => void
 }
 
 function chapterLabel(ch: number) {
@@ -54,6 +55,7 @@ export default function Header({
   onChapterChange, onQuestionChange,
   query, setQuery, bookmarkOnly, setBookmarkOnly, bookmarkCount,
   canArchive, onArchive, archivedCount, onOpenArchived,
+  onOpenDictionary,
 }: HeaderProps) {
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
@@ -104,6 +106,12 @@ export default function Header({
             className="flex items-center justify-center px-4 py-2.5 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
             +
+          </button>
+          <button
+            onClick={onOpenDictionary}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-500 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+          >
+            A to Z
           </button>
           <button
             onClick={onOpenArchived}

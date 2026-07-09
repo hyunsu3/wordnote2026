@@ -16,6 +16,7 @@ import {
 } from './lib/supabase'
 import ArchiveConfirmModal from './components/ArchiveConfirmModal'
 import ArchivedSetsModal from './components/ArchivedSetsModal'
+import DictionaryView from './components/DictionaryView'
 
 interface Word {
   id: string
@@ -28,7 +29,7 @@ interface Word {
   archived: boolean
 }
 
-type View = 'list' | 'quiz-sets' | 'quiz'
+type View = 'list' | 'quiz-sets' | 'quiz' | 'dictionary'
 
 export default function Home() {
   const [words, setWords] = useState<Word[]>([])
@@ -357,6 +358,7 @@ export default function Home() {
           onArchive={() => setIsArchiveConfirmOpen(true)}
           archivedCount={archivedWords.length}
           onOpenArchived={() => setIsArchivedSetsOpen(true)}
+          onOpenDictionary={() => setView('dictionary')}
         />
       )}
       <main className="flex flex-col flex-1 bg-white">
@@ -396,6 +398,12 @@ export default function Home() {
             onAnswer={handleAnswer}
             onBack={() => setView('quiz-sets')}
             onGoToList={handleQuizGoToList}
+          />
+        )}
+        {view === 'dictionary' && (
+          <DictionaryView
+            words={words}
+            onBack={() => setView('list')}
           />
         )}
       </main>
