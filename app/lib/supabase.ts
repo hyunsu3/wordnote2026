@@ -15,6 +15,7 @@ export interface VocabRow {
   question: number
   pronunciation?: string
   wordSet?: string
+  archived: boolean
 }
 
 export async function fetchVocabulary(): Promise<VocabRow[]> {
@@ -22,12 +23,12 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
   const pageSize = 1000
   const rows: Array<{
     id: string; word: string; meaning: string; chapter: number
-    question: number; pronunciation: string | null; word_set: string | null
+    question: number; pronunciation: string | null; word_set: string | null; archived: boolean | null
   }> = []
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
       .from('vocabulary')
-      .select('id, word, meaning, chapter, question, pronunciation, word_set')
+      .select('id, word, meaning, chapter, question, pronunciation, word_set, archived')
       .order('created_at', { ascending: true })
       .range(from, from + pageSize - 1)
     if (error) { console.error(error); return rows.map(mapVocabRow) }
@@ -45,8 +46,15 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
       question: r.question,
       pronunciation: r.pronunciation ?? undefined,
       wordSet: r.word_set ?? undefined,
+      archived: r.archived ?? false,
     }
   }
+}
+
+export async function setArchived(ids: string[], archived: boolean): Promise<void> {
+  if (!supabase || ids.length === 0) return
+  const { error } = await supabase.from('vocabulary').update({ archived }).in('id', ids)
+  if (error) console.error(error)
 }
 
 export async function fetchBookmarks(): Promise<string[]> {

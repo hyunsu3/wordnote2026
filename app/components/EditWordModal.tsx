@@ -10,6 +10,7 @@ interface Word {
   question: number
   pronunciation?: string
   wordSet?: string
+  archived: boolean
 }
 
 interface EditWordModalProps {
@@ -43,6 +44,7 @@ export default function EditWordModal({ word, onSave, onCancel, wordSets }: Edit
       chapter: Number(form.chapter) || 0,
       question: Number(form.question) || 0,
       wordSet: form.wordSet.trim() || undefined,
+      archived: word.archived,
     })
   }
 

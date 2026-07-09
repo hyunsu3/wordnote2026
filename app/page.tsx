@@ -11,9 +11,11 @@ import QuizView from './components/QuizView'
 import {
   fetchVocabulary, insertWords, updateWord, deleteWord,
   fetchWordStats, upsertWordStat, resetWordStats,
-  fetchBookmarks, setBookmark, incrementTapStat,
+  fetchBookmarks, setBookmark, incrementTapStat, setArchived,
   type WordStat,
 } from './lib/supabase'
+import ArchiveConfirmModal from './components/ArchiveConfirmModal'
+import ArchivedSetsModal from './components/ArchivedSetsModal'
 
 interface Word {
   id: string
@@ -23,6 +25,7 @@ interface Word {
   question: number
   pronunciation?: string
   wordSet?: string
+  archived: boolean
 }
 
 type View = 'list' | 'quiz-sets' | 'quiz'
@@ -40,6 +43,8 @@ export default function Home() {
   const [studyPaused, setStudyPaused] = useState(false)
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false)
+  const [isArchivedSetsOpen, setIsArchivedSetsOpen] = useState(false)
   const [deletingWord, setDeletingWord] = useState<Word | null>(null)
   const [editingWord, setEditingWord] = useState<Word | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -91,9 +96,26 @@ export default function Home() {
   }, [])
 
   async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number; pronunciation?: string; wordSet?: string }[]) {
-    const newWords = entries.map(e => ({ id: crypto.randomUUID(), ...e }))
+    const newWords = entries.map(e => ({ id: crypto.randomUUID(), archived: false, ...e }))
     setWords(prev => [...prev, ...newWords])
     await insertWords(newWords)
+  }
+
+  async function handleArchive() {
+    const ids = filteredWords.map(w => w.id)
+    if (ids.length === 0) return
+    setWords(prev => prev.map(w => ids.includes(w.id) ? { ...w, archived: true } : w))
+    setIsArchiveConfirmOpen(false)
+    await setArchived(ids, true)
+  }
+
+  async function handleRestore(wordSet: string | undefined, chapter: number, question: number) {
+    const ids = archivedWords
+      .filter(w => (w.wordSet ?? '') === (wordSet ?? '') && w.chapter === chapter && w.question === question)
+      .map(w => w.id)
+    if (ids.length === 0) return
+    setWords(prev => prev.map(w => ids.includes(w.id) ? { ...w, archived: false } : w))
+    await setArchived(ids, false)
   }
 
   async function handleDeleteConfirm() {
@@ -224,14 +246,17 @@ export default function Home() {
 
   const quizSetsFilterChapter = selectedChapter && !selectedQuestion ? Number(selectedChapter) : null
 
+  const visibleWords = useMemo(() => words.filter(w => !w.archived), [words])
+  const archivedWords = useMemo(() => words.filter(w => w.archived), [words])
+
   const wordSets = useMemo(
-    () => [...new Set(words.map(w => w.wordSet).filter((v): v is string => !!v))],
-    [words]
+    () => [...new Set(visibleWords.map(w => w.wordSet).filter((v): v is string => !!v))],
+    [visibleWords]
   )
 
   const wordSetFilteredWords = useMemo(
-    () => selectedWordSet ? words.filter(w => w.wordSet === selectedWordSet) : words,
-    [words, selectedWordSet]
+    () => selectedWordSet ? visibleWords.filter(w => w.wordSet === selectedWordSet) : visibleWords,
+    [visibleWords, selectedWordSet]
   )
 
   const chapters = useMemo(
@@ -328,6 +353,10 @@ export default function Home() {
           bookmarkOnly={bookmarkOnly}
           setBookmarkOnly={setBookmarkOnly}
           bookmarkCount={bookmarkCount}
+          canArchive={filteredWords.length > 0 && (selectedWordSet !== '' || selectedChapter !== '' || selectedQuestion !== '')}
+          onArchive={() => setIsArchiveConfirmOpen(true)}
+          archivedCount={archivedWords.length}
+          onOpenArchived={() => setIsArchivedSetsOpen(true)}
         />
       )}
       <main className="flex flex-col flex-1 bg-white">
@@ -346,7 +375,7 @@ export default function Home() {
               bookmarked={bookmarked}
               onToggleBookmark={toggleBookmark}
               bookmarkOnly={bookmarkOnly}
-              hasAnyWords={words.length > 0}
+              hasAnyWords={visibleWords.length > 0}
               onTap={handleTap}
             />
           )
@@ -394,6 +423,20 @@ export default function Home() {
           onSave={handleEditSave}
           onCancel={() => setEditingWord(null)}
           wordSets={wordSets}
+        />
+      )}
+      {isArchiveConfirmOpen && (
+        <ArchiveConfirmModal
+          count={filteredWords.length}
+          onConfirm={handleArchive}
+          onCancel={() => setIsArchiveConfirmOpen(false)}
+        />
+      )}
+      {isArchivedSetsOpen && (
+        <ArchivedSetsModal
+          archivedWords={archivedWords}
+          onRestore={handleRestore}
+          onClose={() => setIsArchivedSetsOpen(false)}
         />
       )}
     </div>

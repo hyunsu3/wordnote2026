@@ -26,6 +26,10 @@ interface HeaderProps {
   bookmarkOnly: boolean
   setBookmarkOnly: (v: boolean | ((prev: boolean) => boolean)) => void
   bookmarkCount: number
+  canArchive: boolean
+  onArchive: () => void
+  archivedCount: number
+  onOpenArchived: () => void
 }
 
 function chapterLabel(ch: number) {
@@ -49,6 +53,7 @@ export default function Header({
   selectedChapter, selectedQuestion,
   onChapterChange, onQuestionChange,
   query, setQuery, bookmarkOnly, setBookmarkOnly, bookmarkCount,
+  canArchive, onArchive, archivedCount, onOpenArchived,
 }: HeaderProps) {
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
@@ -101,6 +106,12 @@ export default function Header({
             +
           </button>
           <button
+            onClick={onOpenArchived}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-500 hover:text-amber-700 hover:bg-amber-50 border border-zinc-200 hover:border-amber-200 transition-colors"
+          >
+            보관함{archivedCount > 0 && ` ${archivedCount}`}
+          </button>
+          <button
             onClick={openReset}
             className="px-4 py-2.5 text-base font-medium rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
           >
@@ -134,17 +145,19 @@ export default function Header({
                 <option key={ch} value={String(ch)}>{chapterLabel(ch)}</option>
               ))}
             </select>
-            <select
-              value={selectedQuestion}
-              onChange={e => onQuestionChange(e.target.value)}
-              disabled={!selectedChapter || questions.length === 0}
-              className={`${selectCls} disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              <option value="">전체 문항</option>
-              {questions.map(q => (
-                <option key={q} value={String(q)}>{questionLabel(q)}</option>
-              ))}
-            </select>
+            {!(questions.length === 1 && questions[0] === 0) && (
+              <select
+                value={selectedQuestion}
+                onChange={e => onQuestionChange(e.target.value)}
+                disabled={!selectedChapter || questions.length === 0}
+                className={`${selectCls} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                <option value="">전체 문항</option>
+                {questions.map(q => (
+                  <option key={q} value={String(q)}>{questionLabel(q)}</option>
+                ))}
+              </select>
+            )}
           </>
         )}
         <div className="flex items-center gap-2 shrink-0">
@@ -163,8 +176,9 @@ export default function Header({
             퀴즈 시작
           </button>
           <button
-            disabled
-            className="px-4 py-2.5 text-base font-medium rounded-xl bg-zinc-100 text-zinc-400 cursor-not-allowed"
+            onClick={onArchive}
+            disabled={!canArchive}
+            className="px-4 py-2.5 text-base font-medium rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-transparent"
           >
             보관 처리
           </button>

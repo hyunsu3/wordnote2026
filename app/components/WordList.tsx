@@ -10,6 +10,7 @@ interface Word {
   chapter: number
   question: number
   pronunciation?: string
+  archived: boolean
 }
 
 interface WordListProps {
