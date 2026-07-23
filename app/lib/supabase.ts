@@ -5,6 +5,35 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
 export const supabase = url && key ? createClient(url, key) : null
 
+// ── profiles ──────────────────────────────────────────────────────────────
+
+export interface Profile {
+  id: string
+  name: string
+}
+
+export async function fetchProfileNames(): Promise<Profile[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name')
+    .order('created_at', { ascending: true })
+  if (error) { console.error(error); return [] }
+  return data ?? []
+}
+
+export async function verifyProfilePin(name: string, pin: string): Promise<Profile | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name')
+    .eq('name', name)
+    .eq('pin', pin)
+    .maybeSingle()
+  if (error) { console.error(error); return null }
+  return data
+}
+
 // ── vocabulary ──────────────────────────────────────────────────────────────
 
 export interface VocabRow {
@@ -64,23 +93,25 @@ export async function setArchived(ids: string[], archived: boolean): Promise<voi
   if (error) console.error(error)
 }
 
-export async function fetchBookmarks(): Promise<string[]> {
+export async function fetchBookmarks(profileId: string): Promise<string[]> {
   if (!supabase) return []
   const { data, error } = await supabase
-    .from('vocabulary')
-    .select('id')
-    .eq('bookmarked', true)
+    .from('bookmarks')
+    .select('word_id')
+    .eq('profile_id', profileId)
   if (error) { console.error(error); return [] }
-  return (data ?? []).map(r => r.id)
+  return (data ?? []).map(r => r.word_id)
 }
 
-export async function setBookmark(wordId: string, bookmarked: boolean): Promise<void> {
+export async function setBookmark(wordId: string, bookmarked: boolean, profileId: string): Promise<void> {
   if (!supabase) return
-  const { error } = await supabase
-    .from('vocabulary')
-    .update({ bookmarked })
-    .eq('id', wordId)
-  if (error) console.error(error)
+  if (bookmarked) {
+    const { error } = await supabase.from('bookmarks').upsert({ profile_id: profileId, word_id: wordId })
+    if (error) console.error(error)
+  } else {
+    const { error } = await supabase.from('bookmarks').delete().eq('profile_id', profileId).eq('word_id', wordId)
+    if (error) console.error(error)
+  }
 }
 
 export async function insertWords(words: VocabRow[]): Promise<void> {
@@ -142,11 +173,12 @@ export function getMastery(stat: WordStat | undefined): MasteryLevel {
   return 'learning'
 }
 
-export async function fetchWordStats(): Promise<WordStat[]> {
+export async function fetchWordStats(profileId: string): Promise<WordStat[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('word_stats')
     .select('word_id, correct_count, wrong_count, last_studied, tap_count')
+    .eq('profile_id', profileId)
     .not('word_id', 'is', null)
   if (error) { console.error(error); return [] }
   return (data ?? []).map(r => ({
@@ -158,9 +190,9 @@ export async function fetchWordStats(): Promise<WordStat[]> {
   }))
 }
 
-export async function resetWordStats(wordIds: string[]): Promise<void> {
+export async function resetWordStats(wordIds: string[], profileId: string): Promise<void> {
   if (!supabase || wordIds.length === 0) return
-  const { error } = await supabase.from('word_stats').delete().in('word_id', wordIds)
+  const { error } = await supabase.from('word_stats').delete().eq('profile_id', profileId).in('word_id', wordIds)
   if (error) console.error(error)
 }
 
@@ -169,6 +201,7 @@ export async function upsertWordStat(params: {
   word: string
   meaning: string
   isCorrect: boolean
+  profileId: string
 }): Promise<WordStat | null> {
   if (!supabase) return null
 
@@ -176,6 +209,7 @@ export async function upsertWordStat(params: {
     .from('word_stats')
     .select('id, correct_count, wrong_count')
     .eq('word_id', params.wordId)
+    .eq('profile_id', params.profileId)
     .maybeSingle()
 
   const now = new Date().toISOString()
@@ -196,6 +230,7 @@ export async function upsertWordStat(params: {
       correct_count: params.isCorrect ? 1 : 0,
       wrong_count: params.isCorrect ? 0 : 1,
       last_studied: now,
+      profile_id: params.profileId,
     })
     return {
       wordId: params.wordId,
@@ -211,6 +246,7 @@ export async function incrementTapStat(params: {
   wordId: string
   word: string
   meaning: string
+  profileId: string
 }): Promise<{ tapCount: number; lastStudied: string }> {
   if (!supabase) return { tapCount: 0, lastStudied: '' }
   const now = new Date().toISOString()
@@ -218,6 +254,7 @@ export async function incrementTapStat(params: {
     .from('word_stats')
     .select('id, tap_count')
     .eq('word_id', params.wordId)
+    .eq('profile_id', params.profileId)
     .maybeSingle()
 
   if (existing) {
@@ -233,6 +270,7 @@ export async function incrementTapStat(params: {
       wrong_count: 0,
       tap_count: 1,
       last_studied: now,
+      profile_id: params.profileId,
     })
     return { tapCount: 1, lastStudied: now }
   }

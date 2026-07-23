@@ -30,6 +30,8 @@ interface HeaderProps {
   archivedCount: number
   onOpenArchived: () => void
   onOpenDictionary: () => void
+  profileName: string
+  onSwitchProfile: () => void
 }
 
 function chapterLabel(ch: number) {
@@ -55,6 +57,7 @@ export default function Header({
   query, setQuery, bookmarkOnly, setBookmarkOnly, bookmarkCount,
   canArchive, onArchive, archivedCount, onOpenArchived,
   onOpenDictionary,
+  profileName, onSwitchProfile,
 }: HeaderProps) {
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
@@ -231,7 +234,10 @@ export default function Header({
         }`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-sky-100">
-          <h2 className="text-lg font-bold text-zinc-900">설정</h2>
+          <div>
+            <h2 className="text-lg font-bold text-zinc-900">설정</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">{profileName}님</p>
+          </div>
           <button
             onClick={() => setIsSettingsOpen(false)}
             aria-label="닫기"
@@ -258,6 +264,12 @@ export default function Header({
             className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 transition-colors"
           >
             Init!
+          </button>
+          <button
+            onClick={() => { setIsSettingsOpen(false); onSwitchProfile() }}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+          >
+            프로필 전환
           </button>
         </div>
       </aside>

@@ -8,11 +8,12 @@ import DeleteConfirmModal from './components/DeleteConfirmModal'
 import EditWordModal from './components/EditWordModal'
 import QuizSetSelector from './components/QuizSetSelector'
 import QuizView from './components/QuizView'
+import ProfileGate from './components/ProfileGate'
 import {
   fetchVocabulary, insertWords, updateWord, deleteWord,
   fetchWordStats, upsertWordStat, resetWordStats,
   fetchBookmarks, setBookmark, incrementTapStat, setArchived,
-  type WordStat,
+  type WordStat, type Profile,
 } from './lib/supabase'
 import ArchiveConfirmModal from './components/ArchiveConfirmModal'
 import ArchivedSetsModal from './components/ArchivedSetsModal'
@@ -58,7 +59,11 @@ function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string
   return { wordSet: undefined, chapter }
 }
 
+const PROFILE_STORAGE_KEY = 'drvoca_profile'
+
 export default function Home() {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileChecked, setProfileChecked] = useState(false)
   const [words, setWords] = useState<Word[]>([])
   const [wordStats, setWordStats] = useState<Map<string, WordStat>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -81,7 +86,29 @@ export default function Home() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    Promise.all([fetchVocabulary(), fetchWordStats(), fetchBookmarks()]).then(([vocab, stats, bookmarkIds]) => {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY)
+    if (raw) {
+      try { setProfile(JSON.parse(raw)) } catch { localStorage.removeItem(PROFILE_STORAGE_KEY) }
+    }
+    setProfileChecked(true)
+  }, [])
+
+  function handleLogin(p: Profile) {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p))
+    setProfile(p)
+  }
+
+  function handleSwitchProfile() {
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
+    setProfile(null)
+    setView('list')
+    setQuizSet(null)
+  }
+
+  useEffect(() => {
+    if (!profile) return
+    setLoading(true)
+    Promise.all([fetchVocabulary(), fetchWordStats(profile.id), fetchBookmarks(profile.id)]).then(([vocab, stats, bookmarkIds]) => {
       setWords(vocab)
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
@@ -94,17 +121,18 @@ export default function Home() {
 
       setLoading(false)
     })
-  }, [])
+  }, [profile])
 
   const toggleBookmark = useCallback((id: string) => {
+    if (!profile) return
     setBookmarked(prev => {
       const next = new Set(prev)
       const isNowBookmarked = !next.has(id)
       isNowBookmarked ? next.add(id) : next.delete(id)
-      setBookmark(id, isNowBookmarked)
+      setBookmark(id, isNowBookmarked, profile.id)
       return next
     })
-  }, [])
+  }, [profile])
 
   async function handleAddWord(entries: { word: string; meaning: string; chapter: number; question: number; pronunciation?: string; wordSet?: string }[]) {
     const newWords = entries.map(e => ({ id: crypto.randomUUID(), archived: false, ...e }))
@@ -150,6 +178,7 @@ export default function Home() {
   )
 
   async function handleReset(clearBookmarksToo: boolean) {
+    if (!profile) return
     const targetIds = words.filter(isInResetScope).map(w => w.id)
     let nextStats = wordStats
     if (targetIds.length > 0) {
@@ -179,12 +208,13 @@ export default function Home() {
     setSelectedWordSet(latest?.wordSet ?? '')
     setSelectedChapter(latest ? String(latest.chapter) : '')
 
-    if (targetIds.length > 0) await resetWordStats(targetIds)
-    if (bookmarkTargets.length > 0) await Promise.all(bookmarkTargets.map(w => setBookmark(w.id, false)))
+    if (targetIds.length > 0) await resetWordStats(targetIds, profile.id)
+    if (bookmarkTargets.length > 0) await Promise.all(bookmarkTargets.map(w => setBookmark(w.id, false, profile.id)))
   }
 
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
-    const updated = await upsertWordStat({ wordId, word, meaning, isCorrect })
+    if (!profile) return
+    const updated = await upsertWordStat({ wordId, word, meaning, isCorrect, profileId: profile.id })
     if (updated) {
       setWordStats(prev => {
         const cur = prev.get(wordId)
@@ -194,7 +224,8 @@ export default function Home() {
   }
 
   async function handleTap(wordId: string, word: string, meaning: string) {
-    const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning })
+    if (!profile) return
+    const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning, profileId: profile.id })
     setWordStats(prev => {
       const cur = prev.get(wordId)
       const next = new Map(prev)
@@ -380,10 +411,15 @@ export default function Home() {
     : quizSet.question === 0 ? `${quizSet.chapter}챕터`
     : `${quizSet.chapter}챕터 ${quizSet.question}번`
 
+  if (!profileChecked) return null
+  if (!profile) return <ProfileGate onLogin={handleLogin} />
+
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
       {view === 'list' && (
         <Header
+          profileName={profile.name}
+          onSwitchProfile={handleSwitchProfile}
           onAddWord={() => setIsAddModalOpen(true)}
           onStartQuiz={handleStartQuiz}
           onToggleStudy={handleToggleStudy}
