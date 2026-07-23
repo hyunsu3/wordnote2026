@@ -330,15 +330,19 @@ export default function Home() {
     return result
   }, [wordSetFilteredWords, selectedChapter, selectedQuestion])
 
-  const bookmarkCount = useMemo(
-    () => visibleWords.filter(w => bookmarked.has(w.id)).length,
-    [visibleWords, bookmarked]
-  )
+  const bookmarkCount = useMemo(() => {
+    const base = selectedChapter
+      ? wordSetFilteredWords.filter(w => w.chapter === Number(selectedChapter))
+      : visibleWords
+    return base.filter(w => bookmarked.has(w.id)).length
+  }, [visibleWords, wordSetFilteredWords, selectedChapter, bookmarked])
 
   const displayWords = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const searchingFullPool = bookmarkOnly || q.length > 0
-    const base = searchingFullPool ? visibleWords : filteredWords
+    const bookmarkBase = selectedChapter
+      ? wordSetFilteredWords.filter(w => w.chapter === Number(selectedChapter))
+      : visibleWords
+    const base = q.length > 0 ? visibleWords : bookmarkOnly ? bookmarkBase : filteredWords
     const result = base
       .filter(w => !bookmarkOnly || bookmarked.has(w.id))
       .filter(w => !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || (w.pronunciation ?? '').toLowerCase().includes(q))
@@ -362,7 +366,7 @@ export default function Home() {
       return [...result].sort((a, b) => a.chapter - b.chapter || a.question - b.question)
     }
     return [...result].sort((a, b) => a.word.localeCompare(b.word))
-  }, [filteredWords, visibleWords, bookmarkOnly, bookmarked, query])
+  }, [filteredWords, visibleWords, wordSetFilteredWords, selectedChapter, bookmarkOnly, bookmarked, query])
 
   function handleWordSetChange(ws: string) {
     setSelectedWordSet(ws)

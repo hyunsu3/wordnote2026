@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { PROFILE_AVATARS } from '../lib/avatars'
 
 interface HeaderProps {
   onAddWord: () => void
@@ -92,8 +93,18 @@ export default function Header({
   return (
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
-      <div className="relative flex items-center justify-between px-5 py-4">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 cursor-pointer" onClick={onResetView}>보카보카</h1>
+      <div className="relative flex items-center justify-end px-5 py-6 min-h-28">
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-pointer"
+          onClick={onResetView}
+        >
+          {PROFILE_AVATARS[profileName] && (
+            <span className="w-16 h-16 rounded-full overflow-hidden border border-sky-200 shrink-0">
+              <img src={PROFILE_AVATARS[profileName]} alt={profileName} className="w-full h-full object-cover" />
+            </span>
+          )}
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">보카보카</h1>
+        </div>
         {studySecondsLeft !== null && (
           <span
             className={`absolute left-1/2 -translate-x-1/2 text-3xl font-mono font-bold tabular-nums ${
