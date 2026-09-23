@@ -12,6 +12,7 @@ interface Word {
   wordSet?: string
   archived: boolean
   example?: string
+  exampleKo?: string
   synonym?: string
   antonym?: string
 }
@@ -138,6 +139,9 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
                 )}
                 {w.example && (
                   <p className="text-sm text-zinc-500 italic">&quot;{w.example}&quot;</p>
+                )}
+                {w.exampleKo && (
+                  <p className="text-sm text-zinc-400">{w.exampleKo}</p>
                 )}
               </li>
             ))}

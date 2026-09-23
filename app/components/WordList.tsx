@@ -11,6 +11,8 @@ interface Word {
   question: number
   pronunciation?: string
   archived: boolean
+  example?: string
+  exampleKo?: string
 }
 
 interface WordListProps {
@@ -42,6 +44,15 @@ function PencilIcon() {
     <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
+function QuoteIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21c3 0 7-1.5 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h1c0 3-1 5-3 5" />
+      <path d="M14 21c3 0 7-1.5 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h1c0 3-1 5-3 5" />
     </svg>
   )
 }
@@ -81,6 +92,7 @@ function getMeaningClass(len: number): string {
 
 export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords, onTap }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [exampleView, setExampleView] = useState<{ word: string; meaning: string; example: string; exampleKo?: string } | null>(null)
 
   useEffect(() => {
     if (!resetKey) return
@@ -234,11 +246,46 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               )}
             </div>
 
-            <MasteryBadge stat={wordStats.get(w.id)} tapCount={wordStats.get(w.id)?.tapCount ?? 0} />
+            <div className="flex items-center gap-3 pr-14">
+              <MasteryBadge stat={wordStats.get(w.id)} tapCount={wordStats.get(w.id)?.tapCount ?? 0} />
+              {w.example && (
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo }) }}
+                  className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-sky-500 hover:text-sky-700 transition-colors"
+                  aria-label="예문 보기"
+                >
+                  <QuoteIcon />
+                  예문
+                </button>
+              )}
+            </div>
           </li>
         )
       })}
       </ul>
+
+      {exampleView && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-8 cursor-pointer"
+          onClick={() => setExampleView(null)}
+        >
+          <div className="flex flex-col items-center gap-5 max-w-2xl text-center">
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-purple-400">{exampleView.word}</span>
+              <span className="text-base text-purple-300">{exampleView.meaning}</span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed">
+              {exampleView.example}
+            </p>
+            {exampleView.exampleKo && (
+              <p className="text-base text-white/60 leading-relaxed">{exampleView.exampleKo}</p>
+            )}
+            <span className="text-xs text-white/40 mt-2">탭하여 닫기</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

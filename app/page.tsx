@@ -29,6 +29,7 @@ interface Word {
   wordSet?: string
   archived: boolean
   example?: string
+  exampleKo?: string
   synonym?: string
   antonym?: string
 }
@@ -49,9 +50,15 @@ function findLatestStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: str
   return latestWord ? { wordSet: latestWord.wordSet, chapter: latestWord.chapter } : null
 }
 
+const DEFAULT_WORD_SET = '평가원1200'
+
 function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string; chapter: number } | null {
   const latest = findLatestStudyScope(vocab, stats)
   if (latest) return latest
+  const defaultSetChapters = vocab.filter(w => !w.archived && w.wordSet === DEFAULT_WORD_SET).map(w => w.chapter)
+  if (defaultSetChapters.length > 0) {
+    return { wordSet: DEFAULT_WORD_SET, chapter: Math.min(...defaultSetChapters) }
+  }
   const chapters = vocab.filter(w => !w.archived).map(w => w.chapter)
   if (chapters.length === 0) return null
   const realChapters = chapters.filter(ch => ch > 0)
