@@ -271,18 +271,17 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-8 cursor-pointer"
           onClick={() => setExampleView(null)}
         >
-          <div className="flex flex-col items-center gap-5 max-w-2xl text-center">
+          <div className="flex flex-col items-center gap-5 max-w-full text-center sm:overflow-x-auto">
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-purple-400">{exampleView.word}</span>
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed">
+            <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed sm:whitespace-nowrap">
               {exampleView.example}
             </p>
             {exampleView.exampleKo && (
-              <p className="text-base text-white/60 leading-relaxed">{exampleView.exampleKo}</p>
+              <p className="text-base text-white/60 leading-relaxed tracking-[0.35em] sm:whitespace-nowrap">{exampleView.exampleKo}</p>
             )}
-            <span className="text-xs text-white/40 mt-2">탭하여 닫기</span>
           </div>
         </div>
       )}
