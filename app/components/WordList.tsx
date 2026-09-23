@@ -89,6 +89,19 @@ function getMeaningClass(len: number): string {
   return 'text-sm leading-relaxed'
 }
 
+function highlightExample(text: string, target: string): React.ReactNode {
+  const trimmed = target.trim()
+  if (!trimmed) return text
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  const parts = text.split(regex)
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <span key={i} className="text-yellow-400 font-bold">{part}</span>
+      : part
+  )
+}
+
 
 export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords, onTap }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -228,9 +241,14 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               </button>
             </div>
 
-            {/* 단어명 + 문항번호 */}
+            {/* 단어명 + 발음 + 문항번호 */}
             <div className="flex items-start justify-between gap-2">
-              <span className="text-2xl font-bold text-zinc-900 break-words min-w-0">{w.word}</span>
+              <span className="flex items-baseline gap-1.5 min-w-0">
+                <span className="text-2xl font-bold text-zinc-900 break-words">{w.word}</span>
+                {isExpanded && w.pronunciation && (
+                  <span className="text-sm text-zinc-400 shrink-0">[{w.pronunciation}]</span>
+                )}
+              </span>
               {(w.chapter > 0 || w.question > 0) && (
                 <span className="text-base text-zinc-600 shrink-0 mt-1">
                   {[w.chapter > 0 ? `${w.chapter}챕터` : null, w.question > 0 ? `${w.question}번` : null].filter(Boolean).join(' ')}
@@ -252,7 +270,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onPointerUp={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo }) }}
+                  onClick={(e) => { e.stopPropagation(); onTap(w.id, w.word, w.meaning); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo }) }}
                   className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-sky-500 hover:text-sky-700 transition-colors"
                   aria-label="예문 보기"
                 >
@@ -277,7 +295,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
             </div>
             <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed sm:whitespace-nowrap">
-              {exampleView.example}
+              {highlightExample(exampleView.example, exampleView.word)}
             </p>
             {exampleView.exampleKo && (
               <p className="text-base text-white/60 leading-relaxed tracking-[0.35em] sm:whitespace-nowrap">{exampleView.exampleKo}</p>
