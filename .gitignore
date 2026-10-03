@@ -42,3 +42,4 @@ next-env.d.ts
 
 # scanned vocab source images (OCR 원본, DB에 등록 후 로컬 보관용)
 /public/word600*.bmp
+/public/word900*.bmp
