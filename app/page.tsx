@@ -18,6 +18,7 @@ import {
 import ArchiveConfirmModal from './components/ArchiveConfirmModal'
 import ArchivedSetsModal from './components/ArchivedSetsModal'
 import DictionaryView from './components/DictionaryView'
+import { chapterName } from './lib/chapter'
 
 interface Word {
   id: string
@@ -419,8 +420,8 @@ export default function Home() {
   )
   const chapterLabel = !quizSet ? ''
     : quizSet.chapter === 0 ? '챕터 미지정'
-    : quizSet.question === 0 ? `${quizSet.chapter}챕터`
-    : `${quizSet.chapter}챕터 ${quizSet.question}번`
+    : quizSet.question === 0 ? chapterName(quizSet.chapter)
+    : `${chapterName(quizSet.chapter)} ${quizSet.question}번`
 
   if (!profileChecked) return null
   if (!profile) return <ProfileGate onLogin={handleLogin} />

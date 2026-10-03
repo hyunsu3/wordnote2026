@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { getMastery, type WordStat, type MasteryLevel } from '../lib/supabase'
+import { chapterName } from '../lib/chapter'
 
 interface Word {
   id: string
@@ -251,7 +252,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               </span>
               {(w.chapter > 0 || w.question > 0) && (
                 <span className="text-base text-zinc-600 shrink-0 mt-1">
-                  {[w.chapter > 0 ? `${w.chapter}챕터` : null, w.question > 0 ? `${w.question}번` : null].filter(Boolean).join(' ')}
+                  {[w.chapter > 0 ? chapterName(w.chapter) : null, w.question > 0 ? `${w.question}번` : null].filter(Boolean).join(' ')}
                 </span>
               )}
             </div>

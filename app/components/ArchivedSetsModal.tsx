@@ -1,5 +1,7 @@
 'use client'
 
+import { chapterName } from '../lib/chapter'
+
 interface ArchivedWord {
   chapter: number
   question: number
@@ -13,7 +15,7 @@ interface ArchivedSetsModalProps {
 }
 
 function chapterLabel(ch: number) {
-  return ch === 0 ? '챕터 미지정' : `${ch}챕터`
+  return ch === 0 ? '챕터 미지정' : chapterName(ch)
 }
 
 function questionLabel(q: number) {

@@ -1,5 +1,7 @@
 'use client'
 
+import { chapterName } from '../lib/chapter'
+
 interface Word {
   id: string
   word: string
@@ -23,8 +25,8 @@ interface QuizSetSelectorProps {
 
 function setLabel(chapter: number, question: number): string {
   if (chapter === 0) return '챕터 미지정'
-  if (question === 0) return `${chapter}챕터`
-  return `${chapter}챕터 ${question}번`
+  if (question === 0) return chapterName(chapter)
+  return `${chapterName(chapter)} ${question}번`
 }
 
 export default function QuizSetSelector({ words, filterChapter, onSelect, onBack }: QuizSetSelectorProps) {
@@ -88,7 +90,7 @@ export default function QuizSetSelector({ words, filterChapter, onSelect, onBack
             <li key={`${chapter}-${question}`}>
               {isNewChapter && (
                 <p className="text-lg font-semibold text-zinc-400 px-1 mb-2 mt-4 first:mt-0">
-                  {chapter === 0 ? '챕터 미지정' : `${chapter}챕터`}
+                  {chapter === 0 ? '챕터 미지정' : chapterName(chapter)}
                 </p>
               )}
               <button

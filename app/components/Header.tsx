@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { PROFILE_AVATARS } from '../lib/avatars'
+import { chapterName } from '../lib/chapter'
 
 interface HeaderProps {
   onAddWord: () => void
@@ -36,7 +37,7 @@ interface HeaderProps {
 }
 
 function chapterLabel(ch: number) {
-  return ch === 0 ? '미지정' : `${ch}챕터`
+  return ch === 0 ? '미지정' : chapterName(ch)
 }
 
 function questionLabel(q: number) {
