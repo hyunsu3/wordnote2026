@@ -51,7 +51,7 @@ function findLatestStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: str
   return latestWord ? { wordSet: latestWord.wordSet, chapter: latestWord.chapter } : null
 }
 
-const DEFAULT_WORD_SET = '평가원1200'
+const DEFAULT_WORD_SET = '구동사189'
 
 function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string; chapter: number } | null {
   const latest = findLatestStudyScope(vocab, stats)
@@ -378,7 +378,10 @@ export default function Home() {
 
   function handleWordSetChange(ws: string) {
     setSelectedWordSet(ws)
-    setSelectedChapter('')
+    const chapters = ws ? visibleWords.filter(w => w.wordSet === ws).map(w => w.chapter) : []
+    const real = chapters.filter(ch => ch > 0)
+    const first = real.length > 0 ? Math.min(...real) : chapters.length > 0 ? Math.min(...chapters) : null
+    setSelectedChapter(first === null ? '' : String(first))
     setSelectedQuestion('')
     setQuery('')
     setBookmarkOnly(false)

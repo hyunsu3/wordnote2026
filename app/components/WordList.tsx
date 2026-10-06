@@ -90,15 +90,32 @@ function getMeaningClass(len: number): string {
   return 'text-sm leading-relaxed'
 }
 
+const IRREGULAR_FORMS: Record<string, string> = {
+  be: 'is|are|am|was|were|been|being', go: 'went|gone', get: 'got|gotten', come: 'came', run: 'ran',
+  take: 'took|taken', give: 'gave|given', make: 'made', hold: 'held', fall: 'fell|fallen', keep: 'kept',
+  hang: 'hung', throw: 'threw|thrown', see: 'saw|seen', find: 'found', lay: 'laid', show: 'showed|shown',
+  stand: 'stood', think: 'thought', bring: 'brought', break: 'broke|broken', seek: 'sought', pay: 'paid',
+  catch: 'caught', feed: 'fed', tie: 'tying', lie: 'lying',
+}
+
+// 활용형(carried, putting, took …)과 분리형(put it on)까지 잡는 패턴
+function wordPattern(word: string): string {
+  const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const [first, ...rest] = word.trim().toLowerCase().split(/\s+/)
+  let stem = first
+  if (stem.length > 3 && /[^aeiou]y$/.test(stem)) stem = stem.slice(0, -1)
+  else if (stem.length > 3 && stem.endsWith('e')) stem = stem.slice(0, -1)
+  const irregular = IRREGULAR_FORMS[first]
+  const head = `(?:${esc(stem)}\\w*${irregular ? '|' + irregular : ''})`
+  return rest.reduce((acc, t) => `${acc}(?:\\W+\\w+){0,2}?\\W+${esc(t)}`, `\\b${head}`) + '\\b'
+}
+
 function highlightExample(text: string, target: string): React.ReactNode {
-  const trimmed = target.trim()
-  if (!trimmed) return text
-  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escaped})`, 'gi')
-  const parts = text.split(regex)
+  if (!target.trim()) return text
+  const parts = text.split(new RegExp(`(${wordPattern(target)})`, 'gi'))
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <span key={i} className="text-yellow-400 font-bold">{part}</span>
+      ? <span key={i} className="text-purple-400 font-bold">{part}</span>
       : part
   )
 }
@@ -290,16 +307,16 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-8 cursor-pointer"
           onClick={() => setExampleView(null)}
         >
-          <div className="flex flex-col items-center gap-5 max-w-full text-center sm:overflow-x-auto">
+          <div className="flex flex-col items-center gap-5 max-w-full text-center">
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-purple-400">{exampleView.word}</span>
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed sm:whitespace-nowrap">
+            <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed">
               {highlightExample(exampleView.example, exampleView.word)}
             </p>
             {exampleView.exampleKo && (
-              <p className="text-base text-white/60 leading-relaxed tracking-[0.35em] sm:whitespace-nowrap">{exampleView.exampleKo}</p>
+              <p className="text-base text-white/60 leading-relaxed tracking-[0.35em]">{exampleView.exampleKo}</p>
             )}
           </div>
         </div>
