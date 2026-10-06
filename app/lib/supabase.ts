@@ -64,6 +64,7 @@ export async function fetchVocabulary(): Promise<VocabRow[]> {
       .from('vocabulary')
       .select('id, word, meaning, chapter, question, pronunciation, word_set, archived, example, example_ko, synonym, antonym')
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true }) // created_at 동률(일괄 등록) 시 페이지 경계에서 중복/누락 방지
       .range(from, from + pageSize - 1)
     if (error) { console.error(error); return rows.map(mapVocabRow) }
     rows.push(...(data ?? []))

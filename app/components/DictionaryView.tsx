@@ -124,13 +124,13 @@ export default function DictionaryView({ words, wordStats, onBack }: DictionaryV
                       {w.wordSet}
                     </span>
                   )}
+                  {(() => {
+                    const stat = wordStats.get(w.id)
+                    const studied = !!stat && (stat.correctCount + stat.wrongCount > 0 || stat.tapCount > 0)
+                    return studied ? <MasteryBadge stat={stat} tapCount={stat.tapCount} /> : null
+                  })()}
                 </div>
                 <span className="text-base text-zinc-600">{w.meaning}</span>
-                {(() => {
-                  const stat = wordStats.get(w.id)
-                  const studied = !!stat && (stat.correctCount + stat.wrongCount > 0 || stat.tapCount > 0)
-                  return studied ? <MasteryBadge stat={stat} tapCount={stat.tapCount} /> : null
-                })()}
                 {(w.synonym || w.antonym) && (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                     {w.synonym && (
