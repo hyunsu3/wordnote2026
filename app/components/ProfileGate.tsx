@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { fetchProfileNames, verifyProfilePin, type Profile } from '../lib/supabase'
-import { PROFILE_AVATARS as AVATARS } from '../lib/avatars'
+import { PROFILE_AVATARS as AVATARS, AVATAR_IMG_CLASS, AVATAR_POSITION } from '../lib/avatars'
 
 interface ProfileGateProps {
   onLogin: (profile: Profile) => void
@@ -55,7 +55,7 @@ export default function ProfileGate({ onLogin }: ProfileGateProps) {
               >
                 <span className="w-20 h-20 rounded-full overflow-hidden border-2 border-sky-200 bg-sky-50 group-hover:border-sky-400 transition-colors">
                   {AVATARS[p.name] && (
-                    <img src={AVATARS[p.name]} alt={p.name} className="w-full h-full object-cover" />
+                    <img src={AVATARS[p.name]} alt={p.name} className={AVATAR_IMG_CLASS} style={{ objectPosition: AVATAR_POSITION[AVATARS[p.name]] }} />
                   )}
                 </span>
                 <span className="text-sm font-medium text-zinc-800">{p.name}</span>
@@ -67,7 +67,7 @@ export default function ProfileGate({ onLogin }: ProfileGateProps) {
         <form onSubmit={handleSubmit} className="flex flex-col items-center gap-3 w-full max-w-xs">
           {AVATARS[selected.name] && (
             <span className="w-20 h-20 rounded-full overflow-hidden border-2 border-sky-300 mb-1">
-              <img src={AVATARS[selected.name]} alt={selected.name} className="w-full h-full object-cover" />
+              <img src={AVATARS[selected.name]} alt={selected.name} className={AVATAR_IMG_CLASS} style={{ objectPosition: AVATAR_POSITION[AVATARS[selected.name]] }} />
             </span>
           )}
           <p className="text-center text-zinc-500 text-sm mb-1 w-full">{selected.name}님, 비밀번호 6자리를 입력하세요</p>

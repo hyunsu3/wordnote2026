@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { PROFILE_AVATARS } from '../lib/avatars'
+import { PROFILE_AVATARS, AVATAR_IMG_CLASS, AVATAR_POSITION } from '../lib/avatars'
 import { chapterName } from '../lib/chapter'
 
 interface HeaderProps {
@@ -101,7 +101,7 @@ export default function Header({
         >
           {PROFILE_AVATARS[profileName] && (
             <span className="w-16 h-16 rounded-full overflow-hidden border border-sky-200 shrink-0">
-              <img src={PROFILE_AVATARS[profileName]} alt={profileName} className="w-full h-full object-cover" />
+              <img src={PROFILE_AVATARS[profileName]} alt={profileName} className={AVATAR_IMG_CLASS} style={{ objectPosition: AVATAR_POSITION[PROFILE_AVATARS[profileName]] }} />
             </span>
           )}
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">보카보카</h1>
