@@ -89,6 +89,19 @@ export default function Header({
   }, [expanded, activity])
   const bumpActivity = () => setActivity(n => n + 1)
 
+  // 펼쳐진 상태에서 스크롤을 위로 올리기 시작하면 접음
+  useEffect(() => {
+    if (!expanded) return
+    let lastY = window.scrollY
+    function onScroll() {
+      const y = window.scrollY
+      if (y < lastY - 8) setExpanded(false)
+      else if (y > lastY) lastY = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [expanded])
+
   function openReset() {
     setIsSettingsOpen(false)
     setPw('')
