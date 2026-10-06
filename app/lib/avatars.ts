@@ -1,5 +1,5 @@
 export const PROFILE_AVATARS: Record<string, string> = {
-  '반다비': '/profile-bandabi.jpg',
-  '수호랑': '/profile-suhorang.jpg',
-  '호돌이': '/profile-hodori.jpg',
+  '치이카와': '/chiikawa.jpg',
+  '하치와레': '/hachiware.jpg',
+  '우사기': '/usagi.jpg',
 }
