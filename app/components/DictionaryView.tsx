@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { WordStat } from '../lib/supabase'
+import { MasteryBadge } from './WordList'
 
 interface Word {
   id: string
@@ -31,6 +33,7 @@ const WORD_SET_TAG_PALETTE = [
 
 interface DictionaryViewProps {
   words: Word[]
+  wordStats: Map<string, WordStat>
   onBack: () => void
 }
 
@@ -41,7 +44,7 @@ function firstLetterOf(word: string): string {
   return /[A-Z]/.test(ch) ? ch : ''
 }
 
-export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
+export default function DictionaryView({ words, wordStats, onBack }: DictionaryViewProps) {
   const sortedWords = useMemo(
     () => [...words].sort((a, b) => a.word.localeCompare(b.word)),
     [words]
@@ -123,6 +126,11 @@ export default function DictionaryView({ words, onBack }: DictionaryViewProps) {
                   )}
                 </div>
                 <span className="text-base text-zinc-600">{w.meaning}</span>
+                {(() => {
+                  const stat = wordStats.get(w.id)
+                  const studied = !!stat && (stat.correctCount + stat.wrongCount > 0 || stat.tapCount > 0)
+                  return studied ? <MasteryBadge stat={stat} tapCount={stat.tapCount} /> : null
+                })()}
                 {(w.synonym || w.antonym) && (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                     {w.synonym && (

@@ -65,7 +65,7 @@ const MASTERY_CONFIG: Record<MasteryLevel, { label: string; dot: string; text: s
   mastered:  { label: '완료',    dot: 'bg-green-500',   text: 'text-green-700',  bg: 'bg-green-50' },
 }
 
-function MasteryBadge({ stat, tapCount = 0 }: { stat: WordStat | undefined; tapCount?: number }) {
+export function MasteryBadge({ stat, tapCount = 0 }: { stat: WordStat | undefined; tapCount?: number }) {
   let level = getMastery(stat)
   if (level === 'unlearned' && tapCount > 0) level = 'learning'
   const cfg = MASTERY_CONFIG[level]
@@ -228,7 +228,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
           <li
             key={w.id}
             className={`group relative flex flex-col gap-2 p-4 rounded-xl shadow hover:shadow-lg transition-all cursor-pointer select-none ${
-              isBookmarked ? 'border-2 border-green-500 bg-green-50' : 'border border-zinc-300 bg-white'
+              isBookmarked ? 'border-2 border-green-500 bg-green-50/90' : 'border border-zinc-300 bg-white/90'
             }`}
             onPointerDown={(e) => startHold(e, w.id)}
             onPointerMove={moveHold}

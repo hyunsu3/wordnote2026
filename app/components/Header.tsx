@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PROFILE_AVATARS, AVATAR_IMG_CLASS, AVATAR_POSITION } from '../lib/avatars'
 import { chapterName } from '../lib/chapter'
 
@@ -33,6 +33,7 @@ interface HeaderProps {
   onOpenArchived: () => void
   onOpenDictionary: () => void
   profileName: string
+  introKey: number
   onSwitchProfile: () => void
 }
 
@@ -42,6 +43,16 @@ function chapterLabel(ch: number) {
 
 function questionLabel(q: number) {
   return q === 0 ? '미지정' : `${q}번`
+}
+
+const AUTO_CLOSE_MS = 6000
+
+// 접속·프로필 전환 직후 한 번(introKey 단위) 메뉴를 펼쳐 보여 주고 AUTO_CLOSE_MS 뒤 접음
+let lastIntroKey: number | null = null
+function takeIntro(introKey: number): boolean {
+  if (lastIntroKey === introKey) return false
+  lastIntroKey = introKey
+  return true
 }
 
 function formatStudyTime(seconds: number): string {
@@ -59,13 +70,40 @@ export default function Header({
   query, setQuery, bookmarkOnly, setBookmarkOnly, bookmarkCount,
   canArchive, onArchive, archivedCount, onOpenArchived,
   onOpenDictionary,
-  profileName, onSwitchProfile,
+  profileName, introKey, onSwitchProfile,
 }: HeaderProps) {
   const [showPw, setShowPw] = useState(false)
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [expanded, setExpanded] = useState(() => takeIntro(introKey))
+  const [activity, setActivity] = useState(0)
+  const collapsed = !expanded
+
+  // 프로필을 누르면 펼치고, 입력이 없으면 AUTO_CLOSE_MS 후 자동으로 접음
+  useEffect(() => {
+    if (!expanded) return
+    const t = setTimeout(() => setExpanded(false), AUTO_CLOSE_MS)
+    return () => clearTimeout(t)
+  }, [expanded, activity])
+  const bumpActivity = () => setActivity(n => n + 1)
+
+  // 아래로 내려갔다가 스크롤이 맨 위에 닿으면 펼침
+  useEffect(() => {
+    let scrolledDown = window.scrollY > 24
+    function onScroll() {
+      const y = window.scrollY
+      if (y > 24) scrolledDown = true
+      else if (y <= 0 && scrolledDown) {
+        scrolledDown = false
+        setExpanded(true)
+        setActivity(n => n + 1)
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   function openReset() {
     setIsSettingsOpen(false)
@@ -94,27 +132,48 @@ export default function Header({
   return (
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
-      <div className="relative flex items-center justify-end px-5 py-6 min-h-28">
-        <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-pointer"
-          onClick={onResetView}
+      <div className={`relative flex items-center justify-end px-5 transition-all duration-300 ${collapsed ? 'py-2 min-h-20' : 'py-6 min-h-36'}`}>
+        <h1
+          onClick={() => setExpanded(v => !v)}
+          className={`absolute left-5 top-1/2 -translate-y-1/2 cursor-pointer font-bold tracking-tight text-zinc-900 whitespace-nowrap transition-all duration-300 ${collapsed ? 'text-xl' : 'text-3xl'}`}
         >
-          {PROFILE_AVATARS[profileName] && (
-            <span className="w-16 h-16 rounded-full overflow-hidden border border-sky-200 shrink-0">
-              <img src={PROFILE_AVATARS[profileName]} alt={profileName} className={AVATAR_IMG_CLASS} style={{ objectPosition: AVATAR_POSITION[PROFILE_AVATARS[profileName]] }} />
+          <span className="inline-flex items-center gap-1.5">
+            보카보카
+            <span className="inline-flex items-center">
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              className={`text-zinc-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+            <span className="text-xs font-normal tracking-normal text-zinc-400">진도변경</span>
+            </span>
+          </span>
+        </h1>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
+          <div className="flex flex-col items-center gap-1">
+            {PROFILE_AVATARS[profileName] && (
+              <button
+                type="button"
+                onClick={() => setExpanded(v => !v)}
+                aria-label={expanded ? '메뉴 접기' : '메뉴 열기'}
+                aria-expanded={expanded}
+                className={`rounded-full overflow-hidden border border-sky-200 shrink-0 transition-all duration-300 ${collapsed ? 'w-16 h-16' : 'w-24 h-24'} cursor-pointer`}>
+                <img src={PROFILE_AVATARS[profileName]} alt={profileName} className={AVATAR_IMG_CLASS} style={{ objectPosition: AVATAR_POSITION[PROFILE_AVATARS[profileName]] }} />
+              </button>
+            )}
+          </div>
+          {studySecondsLeft !== null && (
+            <span
+              className={`font-mono font-bold tabular-nums transition-all duration-300 ${collapsed ? 'text-xl' : 'text-3xl'} ${
+                studySecondsLeft <= 60 ? 'text-red-500' : 'text-green-500'
+              } ${isStudyPaused ? 'opacity-40' : ''}`}
+            >
+              {formatStudyTime(studySecondsLeft)}
             </span>
           )}
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">보카보카</h1>
         </div>
-        {studySecondsLeft !== null && (
-          <span
-            className={`absolute left-1/2 -translate-x-1/2 text-3xl font-mono font-bold tabular-nums ${
-              studySecondsLeft <= 60 ? 'text-red-500' : 'text-green-500'
-            } ${isStudyPaused ? 'opacity-40' : ''}`}
-          >
-            {formatStudyTime(studySecondsLeft)}
-          </span>
-        )}
         <div className="flex items-center gap-2">
           <button
             onClick={onAddWord}
@@ -135,7 +194,12 @@ export default function Header({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-5 py-3 border-t border-sky-50">
+      <div
+        onPointerDownCapture={bumpActivity}
+        onKeyDownCapture={bumpActivity}
+        onChangeCapture={bumpActivity}
+        onFocusCapture={bumpActivity}
+        className={`flex flex-wrap items-center gap-x-2 gap-y-2 px-5 border-sky-50 overflow-hidden transition-all duration-300 ${collapsed ? 'max-h-0 py-0 border-t-0 opacity-0' : 'max-h-[600px] py-3 border-t opacity-100'}`}>
         <div className="flex items-center gap-2 flex-1 basis-full min-w-0">
           <button
             onClick={() => setBookmarkOnly(v => !v)}
@@ -259,6 +323,12 @@ export default function Header({
           </button>
         </div>
         <div className="flex flex-col gap-2 p-5">
+          <button
+            onClick={() => { setIsSettingsOpen(false); onResetView() }}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+          >
+            필터 초기화
+          </button>
           <button
             onClick={() => { setIsSettingsOpen(false); onOpenDictionary() }}
             className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"

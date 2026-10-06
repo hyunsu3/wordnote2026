@@ -71,6 +71,7 @@ const PROFILE_STORAGE_KEY = 'drvoca_profile'
 
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [loginCount, setLoginCount] = useState(0)
   const [profileChecked, setProfileChecked] = useState(false)
   const [words, setWords] = useState<Word[]>([])
   const [wordStats, setWordStats] = useState<Map<string, WordStat>>(new Map())
@@ -103,6 +104,7 @@ export default function Home() {
 
   function handleLogin(p: Profile) {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p))
+    setLoginCount(n => n + 1)
     setProfile(p)
   }
 
@@ -121,7 +123,8 @@ export default function Home() {
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
 
-      const latest = resolveStudyScope(vocab, stats)
+      // 접속/프로필 선택 직후에는 학습 이력과 관계없이 기본 세트(구동사189)에서 시작
+      const latest = resolveStudyScope(vocab, [])
       if (latest) {
         if (latest.wordSet) setSelectedWordSet(latest.wordSet)
         setSelectedChapter(String(latest.chapter))
@@ -232,6 +235,7 @@ export default function Home() {
   }
 
   async function handleTap(wordId: string, word: string, meaning: string) {
+    if (studySecondsLeft !== null) setStudyPaused(false)
     if (!profile) return
     const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning, profileId: profile.id })
     setWordStats(prev => {
@@ -376,7 +380,14 @@ export default function Home() {
     return [...result].sort((a, b) => a.word.localeCompare(b.word))
   }, [filteredWords, visibleWords, wordSetFilteredWords, selectedChapter, bookmarkOnly, bookmarked, query])
 
+  // 진행 중인 학습 타이머를 멈추고 초기화
+  function stopStudy() {
+    setStudySecondsLeft(null)
+    setStudyPaused(false)
+  }
+
   function handleWordSetChange(ws: string) {
+    stopStudy()
     setSelectedWordSet(ws)
     const chapters = ws ? visibleWords.filter(w => w.wordSet === ws).map(w => w.chapter) : []
     const real = chapters.filter(ch => ch > 0)
@@ -388,6 +399,7 @@ export default function Home() {
   }
 
   function handleChapterChange(ch: string) {
+    stopStudy()
     setSelectedChapter(ch)
     setSelectedQuestion('')
     setQuery('')
@@ -430,10 +442,16 @@ export default function Home() {
   if (!profile) return <ProfileGate onLogin={handleLogin} />
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+    <div className="relative isolate flex flex-col min-h-screen">
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-white bg-cover bg-left-bottom"
+        style={{ backgroundImage: "url(/bg.webp)" }}
+      />
       {view === 'list' && (
         <Header
           profileName={profile.name}
+          introKey={loginCount}
           onSwitchProfile={handleSwitchProfile}
           onAddWord={() => setIsAddModalOpen(true)}
           onStartQuiz={handleStartQuiz}
@@ -451,7 +469,7 @@ export default function Home() {
           selectedChapter={selectedChapter}
           selectedQuestion={selectedQuestion}
           onChapterChange={handleChapterChange}
-          onQuestionChange={setSelectedQuestion}
+          onQuestionChange={q => { stopStudy(); setSelectedQuestion(q) }}
           query={query}
           setQuery={setQuery}
           bookmarkOnly={bookmarkOnly}
@@ -460,11 +478,11 @@ export default function Home() {
           canArchive={filteredWords.length > 0 && (selectedWordSet !== '' || selectedChapter !== '' || selectedQuestion !== '')}
           onArchive={() => setIsArchiveConfirmOpen(true)}
           archivedCount={archivedWords.length}
-          onOpenArchived={() => setIsArchivedSetsOpen(true)}
-          onOpenDictionary={() => setView('dictionary')}
+          onOpenArchived={() => { stopStudy(); setIsArchivedSetsOpen(true) }}
+          onOpenDictionary={() => { stopStudy(); setView('dictionary') }}
         />
       )}
-      <main className="flex flex-col flex-1 bg-white">
+      <main className={`flex flex-col flex-1 ${view === 'list' ? '' : 'bg-white'}`}>
         {view === 'list' && (
           loading ? (
             <div className="flex flex-col items-center justify-center flex-1 text-zinc-400 dark:text-zinc-600 py-32">
@@ -506,10 +524,13 @@ export default function Home() {
         {view === 'dictionary' && (
           <DictionaryView
             words={words}
+            wordStats={wordStats}
             onBack={handleBackFromDictionary}
           />
         )}
       </main>
+      {/* 카드 아래 여백: 스크롤하면 배경이 보임 */}
+      {view === 'list' && <div aria-hidden className="h-[404px] shrink-0" />}
 
       {isAddModalOpen && (
         <AddWordModal
