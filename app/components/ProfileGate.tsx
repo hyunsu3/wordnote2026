@@ -44,7 +44,7 @@ export default function ProfileGate({ onLogin }: ProfileGateProps) {
   return (
     <div className="relative isolate flex items-center justify-center min-h-screen px-4">
       <AppBackground />
-      <div className="flex flex-col items-center gap-6 w-full max-w-sm rounded-3xl bg-white/80 backdrop-blur-sm px-6 py-10 shadow-lg">
+      <div className="flex flex-col items-center gap-6 w-full max-w-sm -translate-y-[10vh] sm:translate-y-0 rounded-3xl bg-white/80 backdrop-blur-sm px-6 py-10 shadow-lg">
       <h1 className="text-2xl font-bold text-zinc-900">보카보카</h1>
       {!selected ? (
         <div className="flex flex-col gap-4 w-full max-w-xs">
