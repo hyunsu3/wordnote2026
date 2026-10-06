@@ -89,22 +89,6 @@ export default function Header({
   }, [expanded, activity])
   const bumpActivity = () => setActivity(n => n + 1)
 
-  // 아래로 내려갔다가 스크롤이 맨 위에 닿으면 펼침
-  useEffect(() => {
-    let scrolledDown = window.scrollY > 24
-    function onScroll() {
-      const y = window.scrollY
-      if (y > 24) scrolledDown = true
-      else if (y <= 0 && scrolledDown) {
-        scrolledDown = false
-        setExpanded(true)
-        setActivity(n => n + 1)
-      }
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   function openReset() {
     setIsSettingsOpen(false)
     setPw('')

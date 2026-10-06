@@ -67,7 +67,9 @@ function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string
   return { wordSet: undefined, chapter }
 }
 
-const PROFILE_STORAGE_KEY = 'drvoca_profile'
+// 2026-10-06 캐릭터 교체 이후: 키를 바꿔 기존 자동 로그인을 해제 → 모두 캐릭터 선택부터 시작
+const PROFILE_STORAGE_KEY = 'drvoca_profile_v2'
+const LEGACY_PROFILE_STORAGE_KEY = 'drvoca_profile'
 
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -95,6 +97,7 @@ export default function Home() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)
     const raw = localStorage.getItem(PROFILE_STORAGE_KEY)
     if (raw) {
       try { setProfile(JSON.parse(raw)) } catch { localStorage.removeItem(PROFILE_STORAGE_KEY) }
