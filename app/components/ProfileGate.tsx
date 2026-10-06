@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { fetchProfileNames, verifyProfilePin, type Profile } from '../lib/supabase'
+import AppBackground from './AppBackground'
 import { PROFILE_AVATARS as AVATARS, AVATAR_IMG_CLASS, AVATAR_POSITION } from '../lib/avatars'
 
 interface ProfileGateProps {
@@ -41,10 +42,8 @@ export default function ProfileGate({ onLogin }: ProfileGateProps) {
   }
 
   return (
-    <div
-      className="flex items-center justify-center min-h-screen bg-white bg-cover bg-center px-4"
-      style={{ backgroundImage: "url(/bg.webp)" }}
-    >
+    <div className="relative isolate flex items-center justify-center min-h-screen px-4">
+      <AppBackground />
       <div className="flex flex-col items-center gap-6 w-full max-w-sm rounded-3xl bg-white/80 backdrop-blur-sm px-6 py-10 shadow-lg">
       <h1 className="text-2xl font-bold text-zinc-900">보카보카</h1>
       {!selected ? (
