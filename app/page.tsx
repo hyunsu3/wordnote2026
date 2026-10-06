@@ -453,7 +453,7 @@ export default function Home() {
           style={{ backgroundImage: "url(/bg.webp)" }}
         />
         <div
-          className="absolute inset-x-0 bottom-0 h-[65%] sm:hidden bg-no-repeat bg-left-bottom"
+          className="absolute inset-x-0 bottom-0 h-[90%] sm:hidden bg-no-repeat bg-left-bottom"
           style={{
             backgroundImage: "url(/bg.webp)",
             backgroundSize: 'auto 100%',

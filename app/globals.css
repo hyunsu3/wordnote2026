@@ -19,6 +19,12 @@
   }
 }
 
+/* 모바일에서 맨 위에서 당겨 새로고침(pull-to-refresh)되며 화면 상태가 초기화되는 것을 방지 */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
