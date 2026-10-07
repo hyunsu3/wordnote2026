@@ -76,6 +76,7 @@ function makeHeart(key: number, characterIndex: number, delay: number): Heart {
 
 const BUBBLE_WIDTH = 84 // 말풍선 폭(px) — 오른쪽 공간이 이보다 좁으면 머리 위에 표시
 const BUBBLE_HEIGHT = 50 // 두 줄 기준 높이(px)
+const REVEAL_PX = 120 // 아래 여백이 이만큼(px) 보이면 말풍선·누르기 영역을 켠다
 const BUBBLE_BORDER = '#6b4f45' // 치이카와 외곽선의 진한 갈색
 
 // 하치와레의 말풍선: 오른쪽 공간이 있으면 옆에, 좁은 화면이면 머리 위에 꼬리를 아래로 두고 표시
@@ -141,8 +142,9 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     const check = () => {
-      const el = document.documentElement
-      const bottom = el.scrollHeight > window.innerHeight + 40 && window.scrollY + window.innerHeight >= el.scrollHeight - 8
+      // 카드 아래 여백(data-bottom-spacer)이 REVEAL_PX 이상 보이면 '맨 아래'로 간주 — 끝까지 내리지 않아도 된다
+      const spacer = document.querySelector('[data-bottom-spacer]')
+      const bottom = !!spacer && spacer.getBoundingClientRect().top <= window.innerHeight - REVEAL_PX
       setAtBottom(bottom)
       if (!bottom) setHintDismissed(false) // 맨 아래를 벗어나면 다음에 내려올 때 말풍선이 다시 나온다
       setHits(BODIES.map(b => {

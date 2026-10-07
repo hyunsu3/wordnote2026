@@ -563,7 +563,7 @@ export default function Home() {
         )}
       </main>
       {/* 카드 아래 여백: 스크롤하면 배경이 보임 */}
-      {view === 'list' && <div aria-hidden className="h-[404px] shrink-0" />}
+      {view === 'list' && <div aria-hidden data-bottom-spacer className="h-[404px] shrink-0" />}
 
       {isAddModalOpen && (
         <AddWordModal
