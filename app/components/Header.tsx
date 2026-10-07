@@ -92,12 +92,21 @@ export default function Header({
   // 펼쳐진 상태에서 스크롤(방향 무관)이 시작되면 접음
   useEffect(() => {
     if (!expanded) return
-    const startY = window.scrollY
+    // 펼침 애니메이션(300ms) 중에는 헤더 높이 변화로 scrollY가 밀리므로 무시하고, 끝난 뒤 기준점을 잡음
+    let startY = window.scrollY
+    let armed = false
+    const armTimer = setTimeout(() => {
+      startY = window.scrollY
+      armed = true
+    }, 400)
     function onScroll() {
-      if (Math.abs(window.scrollY - startY) > 8) setExpanded(false)
+      if (armed && Math.abs(window.scrollY - startY) > 8) setExpanded(false)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      clearTimeout(armTimer)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [expanded])
 
   function openReset() {
@@ -126,7 +135,7 @@ export default function Header({
 
   return (
     <>
-    <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
+    <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm [overflow-anchor:none]">
       <div className={`relative flex items-center justify-end px-5 transition-all duration-300 ${collapsed ? 'py-2 min-h-20' : 'py-6 min-h-36'}`}>
         <div
           onClick={() => setExpanded(v => !v)}
