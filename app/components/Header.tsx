@@ -128,24 +128,31 @@ export default function Header({
     <>
     <header className="sticky top-0 z-10 bg-white border-b border-sky-100 shadow-sm">
       <div className={`relative flex items-center justify-end px-5 transition-all duration-300 ${collapsed ? 'py-2 min-h-20' : 'py-6 min-h-36'}`}>
-        <h1
+        <div
           onClick={() => setExpanded(v => !v)}
-          className={`absolute left-5 top-1/2 -translate-y-1/2 cursor-pointer font-bold tracking-tight text-zinc-900 whitespace-nowrap transition-all duration-300 ${collapsed ? 'text-xl' : 'text-3xl'}`}
+          className="absolute left-5 top-1/2 -translate-y-1/2 cursor-pointer whitespace-nowrap"
         >
-          <span className="inline-flex items-center gap-1.5">
-            보카보카
-            <span className="inline-flex items-center">
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden
-              className={`text-zinc-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-            <span className="text-xs font-normal tracking-normal text-zinc-400">진도변경</span>
+          <h1 className={`font-bold tracking-tight text-zinc-900 transition-all duration-300 ${collapsed ? 'text-xl' : 'text-3xl'}`}>
+            <span className="inline-flex items-center gap-1.5">
+              보카보카
+              <span className="inline-flex items-center">
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                className={`text-zinc-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+              <span className="text-xs font-normal tracking-normal text-zinc-400">진도변경</span>
+              </span>
             </span>
-          </span>
-        </h1>
+          </h1>
+          {selectedChapter !== '' && (
+            <p className={`font-medium text-green-600 transition-all duration-300 ${collapsed ? 'text-sm' : 'text-base'}`}>
+              {chapterLabel(Number(selectedChapter))}
+            </p>
+          )}
+        </div>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
           <div className="flex flex-col items-center gap-1">
             {PROFILE_AVATARS[profileName] && (
