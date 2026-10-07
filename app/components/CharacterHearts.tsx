@@ -10,7 +10,8 @@ const CHARACTERS = [
   { fx: 0.295, fy: 0.665 },
 ]
 const EMOJIS = ['❤️', '💕', '💗', '💖']
-const SPAWN_MS = 600 // 하트 수명(1.8초) ÷ 간격 ≈ 동시에 3개
+const SPAWN_MS = 600 // 하트 수명(약 1.8초) ÷ 간격 ≈ 동시에 3개
+const EMIT_MS = 3500 // 맨 아래에 닿은 뒤 하트를 내보내는 시간 (그 뒤엔 멈춤)
 const MAX_HEARTS = 3
 
 interface Heart {
@@ -20,6 +21,7 @@ interface Heart {
   dx: number
   dy: number
   size: number
+  duration: number
   emoji: string
 }
 
@@ -63,15 +65,18 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
     const spawn = () => {
       const c = CHARACTERS[turn.current++ % CHARACTERS.length]
       const p = characterPosition(c.fx, c.fy, window.innerWidth, window.innerHeight)
+      // 오른쪽(10°)부터 왼쪽 위(130°)까지 하트마다 다른 방향으로, 거리도 제각각 짧게
+      const angle = (rand(10, 130) * Math.PI) / 180
+      const dist = rand(70, 170)
       const heart: Heart = {
         key: nextKey.current++,
-        // 머리 위쪽에서 오른쪽 위로 살짝 비켜 나와서
-        x: p.x + rand(10, 50),
-        y: p.y - rand(20, 50),
-        // 짧게 오른쪽 위로 떠오르며 커지면서 사라진다
-        dx: rand(50, 110),
-        dy: rand(-150, -90),
-        size: rand(22, 34),
+        // 머리에서 살짝 떨어진 위쪽·오른쪽에서 시작
+        x: p.x + rand(0, 50),
+        y: p.y - rand(20, 60),
+        dx: Math.cos(angle) * dist,
+        dy: -Math.sin(angle) * dist,
+        size: rand(20, 36),
+        duration: rand(1.5, 2.1),
         emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
       }
       setHearts(prev => [...prev, heart].slice(-MAX_HEARTS))
@@ -79,8 +84,10 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
 
     const first = setTimeout(spawn, 50)
     const id = setInterval(spawn, SPAWN_MS)
+    const stop = setTimeout(() => clearInterval(id), EMIT_MS)
     return () => {
       clearTimeout(first)
+      clearTimeout(stop)
       clearInterval(id)
     }
   }, [active])
@@ -98,7 +105,7 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
             fontSize: h.size,
             ['--dx' as string]: `${h.dx}px`,
             ['--dy' as string]: `${h.dy}px`,
-            animation: 'heart-pop 1.8s ease-out both',
+            animation: `heart-pop ${h.duration}s ease-out both`,
           }}
         >
           {h.emoji}
