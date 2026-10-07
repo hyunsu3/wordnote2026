@@ -34,8 +34,15 @@ body {
 /* 캐릭터가 쏘아 보내는 하트: 작게 튀어나왔다가 위로 떠오르며 커지고 사라짐 */
 @keyframes heart-pop {
   0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
-  15%  { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
+  12%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.6; }  /* 뿅! 튀어나옴 */
+  22%  { transform: translate(-50%, -50%) scale(0.95); opacity: 0.6; } /* 살짝 쪼그라듦 */
   100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(3.2); opacity: 0; }
+}
+
+/* 날아가는 동안 좌우로 살랑살랑 흔들리며 기울어짐 */
+@keyframes heart-sway {
+  from { transform: translateX(calc(var(--sway) * -1)) rotate(calc(var(--tilt) * -1)); }
+  to   { transform: translateX(var(--sway)) rotate(var(--tilt)); }
 }
 
 @keyframes fill-bar {

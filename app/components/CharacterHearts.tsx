@@ -10,9 +10,9 @@ const CHARACTERS = [
   { fx: 0.295, fy: 0.665 },
 ]
 const EMOJIS = ['❤️', '💕', '💗', '💖']
-const SPAWN_MS = 600 // 하트 수명(약 1.8초) ÷ 간격 ≈ 동시에 3개
-const EMIT_MS = 3500 // 맨 아래에 닿은 뒤 하트를 내보내는 시간 (그 뒤엔 멈춤)
-const MAX_HEARTS = 3
+const SPAWN_MS = 2400 // 하트 수명(최대 2.1초 + 지연 0.2초)보다 길게 → 앞 하트가 사라진 뒤 다음 하트
+const ROUNDS = 3 // 맨 아래에 닿을 때마다 하트 쌍을 내보내는 횟수 (그 뒤엔 멈춤)
+const MAX_HEARTS = 2
 
 interface Heart {
   key: number
@@ -22,6 +22,10 @@ interface Heart {
   dy: number
   size: number
   duration: number
+  delay: number // 시작 지연(초) — 두 캐릭터가 살짝 어긋나게
+  sway: number // 좌우 흔들림 폭(px)
+  tilt: number // 기울기(deg)
+  swayDuration: number // 한 번 흔들리는 시간(초)
   emoji: string
 }
 
@@ -39,7 +43,6 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
   const [atBottom, setAtBottom] = useState(false)
   const [hearts, setHearts] = useState<Heart[]>([])
   const nextKey = useRef(0)
-  const turn = useRef(0)
   const active = enabled && atBottom
 
   useEffect(() => {
@@ -61,33 +64,40 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
     if (!active) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-    // 한 번에 하트 하나씩, 두 캐릭터가 번갈아 내보낸다
+    // 두 캐릭터가 거의 동시에(약간 어긋나게) 하트를 하나씩 내보낸다
     const spawn = () => {
-      const c = CHARACTERS[turn.current++ % CHARACTERS.length]
-      const p = characterPosition(c.fx, c.fy, window.innerWidth, window.innerHeight)
-      // 오른쪽(10°)부터 왼쪽 위(130°)까지 하트마다 다른 방향으로, 거리도 제각각 짧게
-      const angle = (rand(10, 130) * Math.PI) / 180
-      const dist = rand(70, 170)
-      const heart: Heart = {
-        key: nextKey.current++,
-        // 머리에서 살짝 떨어진 위쪽·오른쪽에서 시작
-        x: p.x + rand(0, 50),
-        y: p.y - rand(20, 60),
-        dx: Math.cos(angle) * dist,
-        dy: -Math.sin(angle) * dist,
-        size: rand(20, 36),
-        duration: rand(1.5, 2.1),
-        emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-      }
-      setHearts(prev => [...prev, heart].slice(-MAX_HEARTS))
+      const batch: Heart[] = CHARACTERS.map((c, i) => {
+        const p = characterPosition(c.fx, c.fy, window.innerWidth, window.innerHeight)
+        // 오른쪽(10°)부터 왼쪽 위(130°)까지 하트마다 다른 방향으로, 거리도 제각각 짧게
+        const angle = (rand(10, 130) * Math.PI) / 180
+        const dist = rand(70, 170)
+        return {
+          key: nextKey.current++,
+          // 머리에서 살짝 떨어진 위쪽·오른쪽에서 시작
+          x: p.x + rand(0, 50),
+          y: p.y - rand(20, 60),
+          dx: Math.cos(angle) * dist,
+          dy: -Math.sin(angle) * dist,
+          size: rand(20, 36),
+          duration: rand(1.5, 2.1),
+          delay: i * rand(0.1, 0.2),
+          sway: rand(4, 9),
+          tilt: rand(5, 10),
+          swayDuration: rand(0.8, 1.2),
+          emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+        }
+      })
+      setHearts(prev => [...prev, ...batch].slice(-MAX_HEARTS))
     }
 
-    const first = setTimeout(spawn, 50)
-    const id = setInterval(spawn, SPAWN_MS)
-    const stop = setTimeout(() => clearInterval(id), EMIT_MS)
+    let rounds = 0
+    const first = setTimeout(() => { spawn(); rounds++ }, 50)
+    const id = setInterval(() => {
+      spawn()
+      if (++rounds >= ROUNDS) clearInterval(id)
+    }, SPAWN_MS)
     return () => {
       clearTimeout(first)
-      clearTimeout(stop)
       clearInterval(id)
     }
   }, [active])
@@ -97,7 +107,9 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
       {hearts.map(h => (
         <span
           key={h.key}
-          onAnimationEnd={() => setHearts(prev => prev.filter(x => x.key !== h.key))}
+          onAnimationEnd={e => {
+            if (e.target === e.currentTarget) setHearts(prev => prev.filter(x => x.key !== h.key))
+          }}
           className="absolute select-none"
           style={{
             left: h.x,
@@ -105,10 +117,20 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
             fontSize: h.size,
             ['--dx' as string]: `${h.dx}px`,
             ['--dy' as string]: `${h.dy}px`,
-            animation: `heart-pop ${h.duration}s ease-out both`,
+            animation: `heart-pop ${h.duration}s ease-out ${h.delay}s both`,
           }}
         >
-          {h.emoji}
+          {/* 바깥: 튀어나와 떠오르며 커지고 사라짐 / 안쪽: 좌우로 살랑살랑 흔들리며 기울어짐 */}
+          <span
+            className="inline-block"
+            style={{
+              ['--sway' as string]: `${h.sway}px`,
+              ['--tilt' as string]: `${h.tilt}deg`,
+              animation: `heart-sway ${h.swayDuration}s ease-in-out infinite alternate`,
+            }}
+          >
+            {h.emoji}
+          </span>
         </span>
       ))}
     </div>
