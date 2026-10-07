@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { WordStat } from '../lib/supabase'
+import type { WordStat } from '../lib/api'
 import { MasteryBadge } from './WordList'
 
 interface Word {

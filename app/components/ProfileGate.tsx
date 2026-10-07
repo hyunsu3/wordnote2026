@@ -1,15 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { fetchProfileNames, verifyProfilePin, type Profile } from '../lib/supabase'
+import { fetchProfileNames, login, type Profile } from '../lib/api'
 import AppBackground from './AppBackground'
 import { PROFILE_AVATARS as AVATARS, AVATAR_IMG_CLASS, AVATAR_POSITION } from '../lib/avatars'
 
 interface ProfileGateProps {
   onLogin: (profile: Profile) => void
 }
-
-const MASTER_PIN = '224500'
 
 export default function ProfileGate({ onLogin }: ProfileGateProps) {
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -25,13 +23,9 @@ export default function ProfileGate({ onLogin }: ProfileGateProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!selected || pin.length !== 6) return
-    if (pin === MASTER_PIN) {
-      onLogin(selected)
-      return
-    }
     setLoading(true)
     setError('')
-    const profile = await verifyProfilePin(selected.name, pin)
+    const profile = await login(selected.name, pin)
     setLoading(false)
     if (profile) {
       onLogin(profile)

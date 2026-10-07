@@ -13,8 +13,9 @@ import {
   fetchVocabulary, insertWords, updateWord, deleteWord,
   fetchWordStats, upsertWordStat, resetWordStats,
   fetchBookmarks, setBookmark, incrementTapStat, setArchived,
+  fetchSession, logout,
   type WordStat, type Profile,
-} from './lib/supabase'
+} from './lib/api'
 import ArchiveConfirmModal from './components/ArchiveConfirmModal'
 import ArchivedSetsModal from './components/ArchivedSetsModal'
 import DictionaryView from './components/DictionaryView'
@@ -68,9 +69,8 @@ function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string
   return { wordSet: undefined, chapter }
 }
 
-// 2026-10-06 캐릭터 교체 이후: 키를 바꿔 기존 자동 로그인을 해제 → 모두 캐릭터 선택부터 시작
-const PROFILE_STORAGE_KEY = 'drvoca_profile_v2'
-const LEGACY_PROFILE_STORAGE_KEY = 'drvoca_profile'
+// 로그인 상태는 서버의 httpOnly 세션 쿠키로 관리 (이전 localStorage 프로필 키는 정리)
+const LEGACY_PROFILE_STORAGE_KEYS = ['drvoca_profile', 'drvoca_profile_v2']
 
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -98,22 +98,20 @@ export default function Home() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY)
-    if (raw) {
-      try { setProfile(JSON.parse(raw)) } catch { localStorage.removeItem(PROFILE_STORAGE_KEY) }
-    }
-    setProfileChecked(true)
+    LEGACY_PROFILE_STORAGE_KEYS.forEach(k => localStorage.removeItem(k))
+    fetchSession().then(p => {
+      setProfile(p)
+      setProfileChecked(true)
+    })
   }, [])
 
   function handleLogin(p: Profile) {
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p))
     setLoginCount(n => n + 1)
     setProfile(p)
   }
 
   function handleSwitchProfile() {
-    localStorage.removeItem(PROFILE_STORAGE_KEY)
+    logout()
     setProfile(null)
     setView('list')
     setQuizSet(null)
@@ -122,7 +120,7 @@ export default function Home() {
   useEffect(() => {
     if (!profile) return
     setLoading(true)
-    Promise.all([fetchVocabulary(), fetchWordStats(profile.id), fetchBookmarks(profile.id)]).then(([vocab, stats, bookmarkIds]) => {
+    Promise.all([fetchVocabulary(), fetchWordStats(), fetchBookmarks()]).then(([vocab, stats, bookmarkIds]) => {
       setWords(vocab)
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
@@ -144,7 +142,7 @@ export default function Home() {
       const next = new Set(prev)
       const isNowBookmarked = !next.has(id)
       isNowBookmarked ? next.add(id) : next.delete(id)
-      setBookmark(id, isNowBookmarked, profile.id)
+      setBookmark(id, isNowBookmarked)
       return next
     })
   }, [profile])
@@ -223,13 +221,13 @@ export default function Home() {
     setSelectedWordSet(latest?.wordSet ?? '')
     setSelectedChapter(latest ? String(latest.chapter) : '')
 
-    if (targetIds.length > 0) await resetWordStats(targetIds, profile.id)
-    if (bookmarkTargets.length > 0) await Promise.all(bookmarkTargets.map(w => setBookmark(w.id, false, profile.id)))
+    if (targetIds.length > 0) await resetWordStats(targetIds)
+    if (bookmarkTargets.length > 0) await Promise.all(bookmarkTargets.map(w => setBookmark(w.id, false)))
   }
 
   async function handleAnswer(wordId: string, word: string, meaning: string, isCorrect: boolean) {
     if (!profile) return
-    const updated = await upsertWordStat({ wordId, word, meaning, isCorrect, profileId: profile.id })
+    const updated = await upsertWordStat({ wordId, word, meaning, isCorrect })
     if (updated) {
       setWordStats(prev => {
         const cur = prev.get(wordId)
@@ -241,7 +239,7 @@ export default function Home() {
   async function handleTap(wordId: string, word: string, meaning: string) {
     if (studySecondsLeft !== null) setStudyPaused(false)
     if (!profile) return
-    const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning, profileId: profile.id })
+    const { tapCount: newTap, lastStudied } = await incrementTapStat({ wordId, word, meaning })
     setWordStats(prev => {
       const cur = prev.get(wordId)
       const next = new Map(prev)

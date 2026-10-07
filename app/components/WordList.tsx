@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { getMastery, type WordStat, type MasteryLevel } from '../lib/supabase'
+import { getMastery, type WordStat, type MasteryLevel } from '../lib/api'
 import { chapterName } from '../lib/chapter'
 
 interface Word {
