@@ -31,6 +31,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 캐릭터가 쏘아 보내는 하트: 작게 튀어나왔다가 위로 떠오르며 커지고 사라짐 */
+@keyframes heart-pop {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  15%  { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(3.2); opacity: 0; }
+}
+
 @keyframes fill-bar {
   from { width: 0%; }
   to   { width: 100%; }

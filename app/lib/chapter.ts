@@ -5,6 +5,7 @@ const RANGE_FIRST_NUMBER = 601
 const CHAPTER_SIZE = 60
 
 // 구동사189: 챕터 101~119 = 전치사 그룹 1~19
+export const PHRASAL_WORD_SET = '구동사189'
 const PHRASAL_OFFSET = 100
 const PHRASAL_PARTICLES = [
   'on', 'off', 'away', 'over', 'in', 'out', 'at', 'from', 'after', 'for',

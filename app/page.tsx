@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Header from './components/Header'
 import AddWordModal from './components/AddWordModal'
 import WordList from './components/WordList'
@@ -20,6 +20,7 @@ import ArchiveConfirmModal from './components/ArchiveConfirmModal'
 import ArchivedSetsModal from './components/ArchivedSetsModal'
 import DictionaryView from './components/DictionaryView'
 import AppBackground from './components/AppBackground'
+import CharacterHearts from './components/CharacterHearts'
 import { chapterName } from './lib/chapter'
 
 interface Word {
@@ -72,6 +73,20 @@ function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string
 // 로그인 상태는 서버의 httpOnly 세션 쿠키로 관리 (이전 localStorage 프로필 키는 정리)
 const LEGACY_PROFILE_STORAGE_KEYS = ['drvoca_profile', 'drvoca_profile_v2']
 
+// 마지막으로 보던 세트·챕터 (프로필별, 이 기기에만 저장)
+const SCOPE_STORAGE_PREFIX = 'drvoca_scope_'
+
+function loadSavedScope(profileId: string, vocab: Word[]): { wordSet: string; chapter: number } | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SCOPE_STORAGE_PREFIX + profileId) ?? 'null')
+    if (!saved || saved.wordSet !== DEFAULT_WORD_SET || typeof saved.chapter !== 'number') return null
+    const exists = vocab.some(w => !w.archived && w.wordSet === saved.wordSet && w.chapter === saved.chapter)
+    return exists ? { wordSet: saved.wordSet, chapter: saved.chapter } : null
+  } catch {
+    return null
+  }
+}
+
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loginCount, setLoginCount] = useState(0)
@@ -86,6 +101,7 @@ export default function Home() {
   const [selectedQuestion, setSelectedQuestion] = useState<string>('')
   const [studySecondsLeft, setStudySecondsLeft] = useState<number | null>(null)
   const [studyPaused, setStudyPaused] = useState(false)
+  const scopeReadyFor = useRef<string | null>(null)
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false)
@@ -125,16 +141,27 @@ export default function Home() {
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
 
-      // 접속/프로필 선택 직후에는 학습 이력과 관계없이 기본 세트(구동사189)에서 시작
-      const latest = resolveStudyScope(vocab, [])
+      // 접속/새로고침/프로필 선택 직후: 구동사189에서 마지막으로 보던 챕터 → 없으면 최근 학습한 챕터 → 없으면 구동사189 첫 챕터
+      const phrasalIds = new Set(vocab.filter(w => w.wordSet === DEFAULT_WORD_SET).map(w => w.id))
+      const latest = loadSavedScope(profile.id, vocab)
+        ?? resolveStudyScope(vocab, stats.filter(s => phrasalIds.has(s.wordId)))
       if (latest) {
         if (latest.wordSet) setSelectedWordSet(latest.wordSet)
         setSelectedChapter(String(latest.chapter))
       }
 
+      scopeReadyFor.current = profile.id
       setLoading(false)
     })
   }, [profile])
+
+  // 보고 있는 세트·챕터를 저장 (복원이 끝난 프로필에 대해서만 — 다른 프로필의 값이 섞이지 않도록)
+  useEffect(() => {
+    if (!profile || loading || !selectedChapter || scopeReadyFor.current !== profile.id) return
+    try {
+      localStorage.setItem(SCOPE_STORAGE_PREFIX + profile.id, JSON.stringify({ wordSet: selectedWordSet, chapter: Number(selectedChapter) }))
+    } catch { /* 저장 실패는 무시 */ }
+  }, [profile, loading, selectedWordSet, selectedChapter])
 
   const toggleBookmark = useCallback((id: string) => {
     if (!profile) return
@@ -258,14 +285,6 @@ export default function Home() {
     setView('quiz')
   }
 
-  function handleQuizGoToList() {
-    if (quizSet) {
-      setSelectedChapter(String(quizSet.chapter))
-      setSelectedQuestion(String(quizSet.question))
-    }
-    setView('list')
-  }
-
   function handleStartQuiz() {
     setStudySecondsLeft(null)
     setStudyPaused(false)
@@ -330,6 +349,21 @@ export default function Home() {
     () => [...new Set(wordSetFilteredWords.map(w => w.chapter))].sort((a, b) => a - b),
     [wordSetFilteredWords]
   )
+
+  // 퀴즈 종료 후 '단어 목록으로': 같은 세트에 다음 챕터가 있으면 다음 챕터로, 없으면 방금 푼 챕터(문항)로 이동
+  function handleQuizGoToList() {
+    if (quizSet) {
+      const next = chapters[chapters.indexOf(quizSet.chapter) + 1]
+      if (next !== undefined) {
+        setSelectedChapter(String(next))
+        setSelectedQuestion('')
+      } else {
+        setSelectedChapter(String(quizSet.chapter))
+        setSelectedQuestion(String(quizSet.question))
+      }
+    }
+    setView('list')
+  }
 
   const questions = useMemo(() => {
     if (!selectedChapter) return []
@@ -446,6 +480,7 @@ export default function Home() {
   return (
     <div className="relative isolate flex flex-col min-h-screen">
       <AppBackground />
+      <CharacterHearts enabled={view === 'list' && !loading} />
       {view === 'list' && (
         <Header
           profileName={profile.name}

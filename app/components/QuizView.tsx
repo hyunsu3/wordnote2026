@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { PHRASAL_WORD_SET } from '../lib/chapter'
 
 interface Word {
   id: string
@@ -9,6 +10,8 @@ interface Word {
   chapter: number
   question: number
   pronunciation?: string
+  wordSet?: string
+  archived?: boolean
 }
 
 type QuizType = 'en_to_ko' | 'ko_to_en'
@@ -46,12 +49,28 @@ function buildQuestions(setWords: Word[], allWords: Word[]): Question[] {
     const prompt = quizType === 'en_to_ko' ? w.word : w.meaning
     const answer = quizType === 'en_to_ko' ? w.meaning : w.word
 
-    const wrongPool = allWords
-      .filter((aw) => aw.id !== w.id)
-      .map((aw) => (quizType === 'en_to_ko' ? aw.meaning : aw.word))
-      .filter((val, idx, arr) => arr.indexOf(val) === idx && val !== answer)
+    const valueOf = (aw: Word) => (quizType === 'en_to_ko' ? aw.meaning : aw.word)
+    const unique = (val: string, idx: number, arr: string[]) => arr.indexOf(val) === idx && val !== answer
 
-    const wrongs = shuffle(wrongPool).slice(0, 3)
+    // 구동사189는 같은 챕터(같은 전치사 그룹)의 다른 단어에서 먼저 오답을 뽑는다
+    const wrongs: string[] = []
+    if (w.wordSet === PHRASAL_WORD_SET) {
+      const sameChapter = allWords
+        .filter((aw) => aw.id !== w.id && aw.wordSet === PHRASAL_WORD_SET && aw.chapter === w.chapter && !aw.archived)
+        .map(valueOf)
+        .filter(unique)
+      wrongs.push(...shuffle(sameChapter).slice(0, 3))
+    }
+
+    // 부족하면 기존 방식(전체 단어)으로 채움
+    if (wrongs.length < 3) {
+      const wrongPool = allWords
+        .filter((aw) => aw.id !== w.id)
+        .map(valueOf)
+        .filter(unique)
+        .filter((val) => !wrongs.includes(val))
+      wrongs.push(...shuffle(wrongPool).slice(0, 3 - wrongs.length))
+    }
 
     while (wrongs.length < 3) {
       wrongs.push(`오답 ${wrongs.length + 1}`)
