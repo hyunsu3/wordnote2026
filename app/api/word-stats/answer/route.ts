@@ -10,13 +10,16 @@ export async function POST(request: NextRequest) {
     return badRequest()
   }
 
-  const { data: existing, error: readError } = await admin()
+  // 중복 행이 있어도 실패하지 않도록 첫 행만 사용
+  const { data: found, error: readError } = await admin()
     .from('word_stats')
     .select('id, correct_count, wrong_count')
     .eq('word_id', b.wordId)
     .eq('profile_id', session.id)
-    .maybeSingle()
+    .order('id', { ascending: true })
+    .limit(1)
   if (readError) return serverError(readError)
+  const existing = found?.[0]
 
   const now = new Date().toISOString()
   if (existing) {

@@ -60,5 +60,7 @@ export function badRequest(message = 'bad request'): Response {
 
 export function serverError(error: unknown): Response {
   console.error(error)
-  return Response.json({ error: 'server error' }, { status: 500 })
+  // 개발 환경에서만 원인을 응답에 포함 (배포 환경에서는 숨김)
+  const detail = process.env.NODE_ENV !== 'production' ? error : undefined
+  return Response.json({ error: 'server error', detail }, { status: 500 })
 }

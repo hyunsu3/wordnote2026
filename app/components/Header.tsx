@@ -171,6 +171,12 @@ export default function Header({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={onStartQuiz}
+            className="h-11 px-3 sm:px-4 text-sm sm:text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors whitespace-nowrap"
+          >
+            퀴즈 시작
+          </button>
+          <button
             onClick={onAddWord}
             className="flex items-center justify-center w-11 h-11 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
           >
@@ -275,12 +281,6 @@ export default function Header({
             }`}
           >
             {!isStudying ? '학습 시작' : isStudyPaused ? '이어하기' : '잠깐 휴식'}
-          </button>
-          <button
-            onClick={onStartQuiz}
-            className="px-4 py-2.5 text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors"
-          >
-            퀴즈 시작
           </button>
           <button
             onClick={onArchive}
