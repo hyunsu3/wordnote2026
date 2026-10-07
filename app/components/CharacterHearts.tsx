@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from 'react'
 const IMG_W = 1920
 const IMG_H = 1081
 const CHARACTERS = [
-  { fx: 0.165, fy: 0.6, away: 12 }, // 치이카와 — away: 머리에서 추가로 띄우는 거리(px)
-  { fx: 0.295, fy: 0.665, away: 0 }, // 하치와레
+  { fx: 0.165, fy: 0.6, away: 12, right: 0 }, // 치이카와 — away: 머리에서 추가로 띄우는 거리(px), right: 오른쪽으로 옮기는 거리(px)
+  { fx: 0.295, fy: 0.665, away: 0, right: 35 }, // 하치와레
 ]
 // 두 캐릭터 몸통(누르는 영역) 중심과 반지름 (이미지 기준 px) — CHARACTERS와 같은 순서
 const BODIES = [
@@ -60,7 +60,7 @@ function makeHeart(key: number, characterIndex: number, delay: number): Heart {
   return {
     key,
     // 머리에서 살짝 떨어진 위쪽·오른쪽에서 시작
-    x: p.x + rand(0, 50) + c.away * 0.5,
+    x: p.x + rand(0, 50) + c.away * 0.5 + c.right,
     y: p.y - rand(20, 60) - c.away,
     dx: Math.cos(angle) * dist,
     dy: -Math.sin(angle) * dist,
