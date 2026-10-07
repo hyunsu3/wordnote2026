@@ -133,9 +133,15 @@ export default function Header({
           className="absolute left-5 top-1/2 -translate-y-1/2 cursor-pointer whitespace-nowrap"
         >
           <h1 className={`font-bold tracking-tight text-zinc-900 transition-all duration-300 ${collapsed ? 'text-xl' : 'text-3xl'}`}>
-            <span className="inline-flex items-center gap-1.5">
-              보카보카
-              <span className="inline-flex items-center">
+            보카보카
+          </h1>
+          <p className="flex items-center gap-1.5">
+            {selectedChapter !== '' && (
+              <span className={`font-medium text-green-600 transition-all duration-300 ${collapsed ? 'text-base' : 'text-lg'}`}>
+                {chapterLabel(Number(selectedChapter))}
+              </span>
+            )}
+            <span className="inline-flex items-center">
               <svg
                 width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
                 strokeLinecap="round" strokeLinejoin="round" aria-hidden
@@ -144,14 +150,8 @@ export default function Header({
                 <path d="m6 9 6 6 6-6" />
               </svg>
               <span className="text-xs font-normal tracking-normal text-zinc-400">진도변경</span>
-              </span>
             </span>
-          </h1>
-          {selectedChapter !== '' && (
-            <p className={`font-medium text-green-600 transition-all duration-300 ${collapsed ? 'text-sm' : 'text-base'}`}>
-              {chapterLabel(Number(selectedChapter))}
-            </p>
-          )}
+          </p>
         </div>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
           <div className="flex flex-col items-center gap-1">
@@ -182,12 +182,6 @@ export default function Header({
             className="h-11 px-3 sm:px-4 text-sm sm:text-base font-medium rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors whitespace-nowrap"
           >
             퀴즈 시작
-          </button>
-          <button
-            onClick={onAddWord}
-            className="flex items-center justify-center w-11 h-11 text-xl font-medium rounded-xl bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors"
-          >
-            +
           </button>
           <button
             onClick={() => setIsSettingsOpen(true)}
@@ -325,6 +319,12 @@ export default function Header({
           </button>
         </div>
         <div className="flex flex-col gap-2 p-5">
+          <button
+            onClick={() => { setIsSettingsOpen(false); onAddWord() }}
+            className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
+          >
+            단어 추가
+          </button>
           <button
             onClick={() => { setIsSettingsOpen(false); onResetView() }}
             className="px-4 py-2.5 text-base font-medium rounded-xl text-left text-zinc-600 hover:text-sky-700 hover:bg-sky-50 border border-zinc-200 hover:border-sky-200 transition-colors"
