@@ -98,7 +98,8 @@ function Hint({ hit, hidden }: { hit: HitArea; hidden: boolean }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed z-30 select-none transition-opacity duration-500"
+      // z-[-5]: 배경(-z-10)보다는 위, 단어 카드보다는 아래 → 카드에 가려지고 여백에서만 보인다
+      className="pointer-events-none fixed z-[-5] select-none transition-opacity duration-500"
       style={{ left, top, width: BUBBLE_WIDTH, opacity: hidden ? 0 : 1 }}
     >
       {/* 손으로 그린 듯 살짝 울퉁불퉁한 테두리 (글자는 왜곡하지 않도록 따로 그림) */}
@@ -144,7 +145,8 @@ export default function CharacterHearts({ enabled }: { enabled: boolean }) {
     const check = () => {
       // 카드 아래 여백(data-bottom-spacer)이 REVEAL_PX 이상 보이면 '맨 아래'로 간주 — 끝까지 내리지 않아도 된다
       const spacer = document.querySelector('[data-bottom-spacer]')
-      const bottom = !!spacer && spacer.getBoundingClientRect().top <= window.innerHeight - REVEAL_PX
+      // 단, 스크롤을 실제로 내리기 전(맨 위)에는 켜지 않는다 — 목록이 짧아 여백이 처음부터 보이는 경우 대비
+      const bottom = !!spacer && window.scrollY > 40 && spacer.getBoundingClientRect().top <= window.innerHeight - REVEAL_PX
       setAtBottom(bottom)
       if (!bottom) setHintDismissed(false) // 맨 아래를 벗어나면 다음에 내려올 때 말풍선이 다시 나온다
       setHits(BODIES.map(b => {
