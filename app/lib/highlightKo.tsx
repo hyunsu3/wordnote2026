@@ -7,8 +7,5 @@ export function renderExampleKo(text: string, className: string): ReactNode {
   )
 }
 
-// 기출이 아닌 직접 작성한 예문 표시 (주황색 연필 기호)
-export function OwnExampleMark({ source }: { source?: string }) {
-  if (!source?.startsWith('직접 작성')) return null
-  return <span className="text-orange-400" title={source} aria-label="직접 작성한 예문">✎ </span>
-}
+// 기출이 아닌 직접 작성한 예문인지 (카드의 '예문' 버튼을 주황색으로 표시)
+export const isOwnExample = (source?: string) => !!source?.startsWith('직접 작성')

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { getMastery, type WordStat, type MasteryLevel } from '../lib/api'
 import { chapterName } from '../lib/chapter'
-import { renderExampleKo, OwnExampleMark } from '../lib/highlightKo'
+import { renderExampleKo, isOwnExample } from '../lib/highlightKo'
 
 interface Word {
   id: string
@@ -291,7 +291,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
                   onPointerDown={(e) => e.stopPropagation()}
                   onPointerUp={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); onTap(w.id, w.word, w.meaning); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo, exampleSource: w.exampleSource }) }}
-                  className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-sky-500 hover:text-sky-700 transition-colors"
+                  className={`shrink-0 inline-flex items-center gap-1 text-xs font-medium transition-colors ${isOwnExample(w.exampleSource) ? 'text-orange-500 hover:text-orange-700' : 'text-sky-500 hover:text-sky-700'}`}
                   aria-label="예문 보기"
                 >
                   <QuoteIcon />
@@ -315,7 +315,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
             </div>
             <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed">
-              <OwnExampleMark source={exampleView.exampleSource} />{highlightExample(exampleView.example, exampleView.word)}
+              {highlightExample(exampleView.example, exampleView.word)}
             </p>
             {exampleView.exampleKo && (
               <p className="text-base text-white/60 leading-relaxed tracking-[0.35em]">{renderExampleKo(exampleView.exampleKo, 'text-purple-400 font-bold')}</p>
