@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { getMastery, type WordStat, type MasteryLevel } from '../lib/api'
 import { chapterName } from '../lib/chapter'
-import { renderExampleKo } from '../lib/highlightKo'
+import { renderExampleKo, OwnExampleMark } from '../lib/highlightKo'
 
 interface Word {
   id: string
@@ -315,7 +315,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
             </div>
             <p className="text-2xl sm:text-3xl font-semibold text-white leading-relaxed">
-              {highlightExample(exampleView.example, exampleView.word)}
+              <OwnExampleMark source={exampleView.exampleSource} />{highlightExample(exampleView.example, exampleView.word)}
             </p>
             {exampleView.exampleKo && (
               <p className="text-base text-white/60 leading-relaxed tracking-[0.35em]">{renderExampleKo(exampleView.exampleKo, 'text-purple-400 font-bold')}</p>

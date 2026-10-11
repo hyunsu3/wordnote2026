@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { WordStat } from '../lib/api'
 import { MasteryBadge } from './WordList'
-import { renderExampleKo } from '../lib/highlightKo'
+import { renderExampleKo, OwnExampleMark } from '../lib/highlightKo'
 
 interface Word {
   id: string
@@ -148,7 +148,7 @@ export default function DictionaryView({ words, wordStats, onBack }: DictionaryV
                   </div>
                 )}
                 {w.example && (
-                  <p className="text-sm text-zinc-500 italic">&quot;{w.example}&quot;</p>
+                  <p className="text-sm text-zinc-500 italic"><OwnExampleMark source={w.exampleSource} />&quot;{w.example}&quot;</p>
                 )}
                 {w.exampleKo && (
                   <p className="text-sm text-zinc-400">{renderExampleKo(w.exampleKo, 'text-purple-400 font-semibold')}</p>
