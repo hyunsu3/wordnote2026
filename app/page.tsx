@@ -34,6 +34,7 @@ interface Word {
   archived: boolean
   example?: string
   exampleKo?: string
+  exampleSource?: string
   synonym?: string
   antonym?: string
 }
@@ -54,7 +55,8 @@ function findLatestStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: str
   return latestWord ? { wordSet: latestWord.wordSet, chapter: latestWord.chapter } : null
 }
 
-const DEFAULT_WORD_SET = '구동사189'
+// 이번 주 기본 세트 (구동사189에서 변경)
+const DEFAULT_WORD_SET = '20261012'
 
 function resolveStudyScope(vocab: Word[], stats: WordStat[]): { wordSet?: string; chapter: number } | null {
   const latest = findLatestStudyScope(vocab, stats)
@@ -141,7 +143,7 @@ export default function Home() {
       setWordStats(new Map(stats.map(s => [s.wordId, s])))
       setBookmarked(new Set(bookmarkIds))
 
-      // 접속/새로고침/프로필 선택 직후: 구동사189에서 마지막으로 보던 챕터 → 없으면 최근 학습한 챕터 → 없으면 구동사189 첫 챕터
+      // 접속/새로고침/프로필 선택 직후: 기본 세트에서 마지막으로 보던 챕터 → 없으면 최근 학습한 챕터 → 없으면 기본 세트 첫 챕터
       const phrasalIds = new Set(vocab.filter(w => w.wordSet === DEFAULT_WORD_SET).map(w => w.id))
       const latest = loadSavedScope(profile.id, vocab)
         ?? resolveStudyScope(vocab, stats.filter(s => phrasalIds.has(s.wordId)))

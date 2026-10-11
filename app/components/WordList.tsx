@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { getMastery, type WordStat, type MasteryLevel } from '../lib/api'
 import { chapterName } from '../lib/chapter'
+import { renderExampleKo } from '../lib/highlightKo'
 
 interface Word {
   id: string
@@ -14,6 +15,7 @@ interface Word {
   archived: boolean
   example?: string
   exampleKo?: string
+  exampleSource?: string
 }
 
 interface WordListProps {
@@ -123,7 +125,7 @@ function highlightExample(text: string, target: string): React.ReactNode {
 
 export default function WordList({ words, wordStats, onDelete, onEdit, resetKey, bookmarked, onToggleBookmark, bookmarkOnly, hasAnyWords, onTap }: WordListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [exampleView, setExampleView] = useState<{ word: string; meaning: string; example: string; exampleKo?: string } | null>(null)
+  const [exampleView, setExampleView] = useState<{ word: string; meaning: string; example: string; exampleKo?: string; exampleSource?: string } | null>(null)
 
   useEffect(() => {
     if (!resetKey) return
@@ -288,7 +290,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onPointerUp={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); onTap(w.id, w.word, w.meaning); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo }) }}
+                  onClick={(e) => { e.stopPropagation(); onTap(w.id, w.word, w.meaning); setExampleView({ word: w.word, meaning: w.meaning, example: w.example!, exampleKo: w.exampleKo, exampleSource: w.exampleSource }) }}
                   className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-sky-500 hover:text-sky-700 transition-colors"
                   aria-label="예문 보기"
                 >
@@ -307,7 +309,7 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-8 cursor-pointer"
           onClick={() => setExampleView(null)}
         >
-          <div className="flex flex-col items-center gap-5 max-w-full text-center">
+          <div className="flex flex-col items-center gap-5 max-w-full md:max-w-[80%] text-center">
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-purple-400">{exampleView.word}</span>
               <span className="text-base text-purple-300">{exampleView.meaning}</span>
@@ -316,7 +318,10 @@ export default function WordList({ words, wordStats, onDelete, onEdit, resetKey,
               {highlightExample(exampleView.example, exampleView.word)}
             </p>
             {exampleView.exampleKo && (
-              <p className="text-base text-white/60 leading-relaxed tracking-[0.35em]">{exampleView.exampleKo}</p>
+              <p className="text-base text-white/60 leading-relaxed tracking-[0.35em]">{renderExampleKo(exampleView.exampleKo, 'text-purple-400 font-bold')}</p>
+            )}
+            {exampleView.exampleSource && (
+              <p className="text-sm text-white/40">출처: {exampleView.exampleSource}</p>
             )}
           </div>
         </div>

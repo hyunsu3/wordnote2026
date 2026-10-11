@@ -8,7 +8,7 @@ const MAX_ROWS = 2000
 interface DbRow {
   id: string; word: string; meaning: string; chapter: number
   question: number; pronunciation: string | null; word_set: string | null; archived: boolean | null
-  example: string | null; example_ko: string | null; synonym: string | null; antonym: string | null
+  example: string | null; example_ko: string | null; example_source: string | null; synonym: string | null; antonym: string | null
 }
 
 function mapRow(r: DbRow): VocabRow {
@@ -23,6 +23,7 @@ function mapRow(r: DbRow): VocabRow {
     archived: r.archived ?? false,
     example: r.example ?? undefined,
     exampleKo: r.example_ko ?? undefined,
+    exampleSource: r.example_source ?? undefined,
     synonym: r.synonym ?? undefined,
     antonym: r.antonym ?? undefined,
   }
@@ -49,7 +50,7 @@ export async function GET() {
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await admin()
       .from('vocabulary')
-      .select('id, word, meaning, chapter, question, pronunciation, word_set, archived, example, example_ko, synonym, antonym')
+      .select('id, word, meaning, chapter, question, pronunciation, word_set, archived, example, example_ko, example_source, synonym, antonym')
       .order('created_at', { ascending: true })
       .order('id', { ascending: true }) // created_at 동률(일괄 등록) 시 페이지 경계에서 중복/누락 방지
       .range(from, from + pageSize - 1)

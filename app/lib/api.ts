@@ -56,6 +56,7 @@ export interface VocabRow {
   archived: boolean
   example?: string
   exampleKo?: string
+  exampleSource?: string
   synonym?: string
   antonym?: string
 }
